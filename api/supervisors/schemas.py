@@ -1,24 +1,24 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
-class UserBase(BaseModel):
+class SupervisorBase(BaseModel):
     name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
     email: EmailStr
-    venue_id: Optional[int] = None
 
-class UserCreate(UserBase):
-    password: str
+class SupervisorCreate(SupervisorBase):
+    pass
 
-class UserUpdate(BaseModel):
+class SupervisorUpdate(BaseModel):
     name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
-    venue_id: Optional[int] = None
 
-class UserResponse(UserBase):
+class SupervisorResponse(SupervisorBase):
     id: int
-    roles: List[str] = []
-    venue_name: Optional[str] = None
+    venues_count: int = 0
+    
+    class Config:
+        from_attributes = True
