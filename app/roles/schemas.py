@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Optional, List
 
 class RoleBase(BaseModel):
     name: str
@@ -7,12 +7,9 @@ class RoleBase(BaseModel):
 class RoleCreate(RoleBase):
     pass
 
-class RoleUpdate(BaseModel):
-    name: Optional[str] = None
-
 class RoleResponse(RoleBase):
     id: int
-    users_count: int = 0
-    
+    users: Optional[List[int]] = None 
+
     class Config:
-        from_attributes = True
+        orm_mode = True

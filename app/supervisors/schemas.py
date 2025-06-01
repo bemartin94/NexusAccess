@@ -5,20 +5,13 @@ class SupervisorBase(BaseModel):
     name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
-    email: EmailStr
+    email: Optional[EmailStr] = None
 
 class SupervisorCreate(SupervisorBase):
-    pass
-
-class SupervisorUpdate(BaseModel):
-    name: Optional[str] = None
-    last_name: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: EmailStr 
 
 class SupervisorResponse(SupervisorBase):
     id: int
-    venues_count: int = 0
-    
+
     class Config:
         from_attributes = True
