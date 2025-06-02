@@ -44,4 +44,7 @@ async def delete_visitor(
     visitor_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    success = await VisitorDAL(db).dele
+    success = await VisitorDAL(db).delete_visitor(visitor_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Visitor not found")
+    return {"message": "Visitor deleted successfully"}

@@ -16,7 +16,7 @@ class AccessBase(BaseModel):
     venue_id: int
     id_card_type_id: int
     visitor_id: Optional[int] = None
-    id_supervisor: int
+    supervisor_id: int
     access_reason: Optional[str] = None
     department: Optional[str] = None
     is_recurrent: Optional[bool] = False

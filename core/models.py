@@ -5,9 +5,10 @@ from .database import Base
 user_roles = Table(
     "user_roles",
     Base.metadata,
-    Column("user_id", Integer, ForeignKey("users.id")),
-    Column("role_id", Integer, ForeignKey("roles.id"))
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("role_id", Integer, ForeignKey("roles.id"), primary_key=True)
 )
+
 
 class User(Base):
     __tablename__ = "users"
@@ -37,6 +38,7 @@ class Venue(Base):
     users = relationship("User", back_populates="venue")
     supervisor = relationship("Supervisor", back_populates="venues")
     visitors = relationship("Visitor", back_populates="venue")
+    
 
 
 class Role(Base):
@@ -81,6 +83,8 @@ class Visitor(Base):
 
     id_card_type = relationship("IdCardType", back_populates="visitors")
     supervisor = relationship("Supervisor", back_populates="visitors")
+    venue = relationship("Venue", back_populates="visitors")
+
 
 
 class AccessTime(Base):
@@ -99,14 +103,17 @@ class Access(Base):
     venue_id = Column(Integer, ForeignKey("venues.id"))
     visitor_id = Column(Integer, ForeignKey("visitors.id"), nullable=True)
     id_card_type_id = Column(Integer, ForeignKey("id_card_types.id"))
-    id_supervisor = Column(Integer, ForeignKey("supervisors.id"))
+    supervisor_id = Column(Integer, ForeignKey("supervisors.id"))
     
     access_reason = Column(String, nullable=True)
     department = Column(String, nullable=True)
     is_recurrent = Column(Boolean, nullable=True)
     status = Column(String, nullable=False)
 
+    access = relationship("Access", back_populates="access_time")
     access_time = relationship("AccessTime", uselist=False, back_populates="access")
     id_card_type = relationship("IdCardType")
     visitor = relationship("Visitor")
+    supervisor = relationship("Supervisor")
+
 
