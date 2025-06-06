@@ -6,11 +6,6 @@ from core.database import AsyncSessionLocal
 
 router = APIRouter(tags=["IDCardTypes"])
 
-<<<<<<< Updated upstream
-@router.get("/")
-async def users():
-    return {"ejemplo": "ejemplo"}
-=======
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
@@ -43,4 +38,3 @@ async def delete_id_card_type(id_card_type_id: int, db: AsyncSession = Depends(g
     if not deleted:
         raise HTTPException(status_code=404, detail="ID Card Type not found")
     return {"deleted": deleted}
->>>>>>> Stashed changes
