@@ -5,11 +5,6 @@ from core.database import AsyncSessionLocal
 
 router = APIRouter(tags=["Supervisors"])
 
-<<<<<<< Updated upstream
-@router.get("/")
-async def supervisors():
-    return {"ejemplo": "ejemplo"}
-=======
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
@@ -57,4 +52,3 @@ async def delete_supervisor(
     if not success:
         raise HTTPException(status_code=404, detail="Supervisor not found")
     return {"deleted": success}
->>>>>>> Stashed changes

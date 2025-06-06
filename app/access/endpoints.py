@@ -6,11 +6,6 @@ from core.database import AsyncSessionLocal
 
 router = APIRouter(tags=["Access"])
 
-<<<<<<< Updated upstream
-@router.get("/")
-async def access():
-    return {"ejemplo": "ejemplo"}
-=======
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
@@ -42,4 +37,3 @@ async def delete_access(access_id: int, db: AsyncSession = Depends(get_db)):
     deleted = await dal.AccessDAL(db).delete_access(access_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Access not found")
->>>>>>> Stashed changes

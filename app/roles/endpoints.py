@@ -6,11 +6,6 @@ from core.database import AsyncSessionLocal
 
 router = APIRouter(tags=["Roles"])
 
-<<<<<<< Updated upstream
-@router.get("/")
-async def roles():
-    return {"ejemplo": "ejemplo"}
-=======
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
@@ -43,4 +38,3 @@ async def delete_role(role_id: int, db: AsyncSession = Depends(get_db)):
     if not deleted:
         raise HTTPException(status_code=404, detail="Role not found")
     return {"deleted": deleted}
->>>>>>> Stashed changes
