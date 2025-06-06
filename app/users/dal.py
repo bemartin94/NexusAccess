@@ -1,8 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Optional, List
-
-from core import User
+from core.models import User
 from app.users.schemas import UserCreate, UserUpdate, UserResponse
 
 class UserDAL:
