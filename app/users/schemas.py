@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
-from app.roles.schemas import RoleResponse  # Asumo que ya tienes schemas para Role
-from app.venues.schemas import VenueResponse  # Asumo que tienes schemas para Venue
+from app.roles.schemas import RoleResponse  
+from app.venues.schemas import VenueResponse
 
 class UserBase(BaseModel):
     name: Optional[str] = None
@@ -12,7 +12,7 @@ class UserBase(BaseModel):
     venue_id: Optional[int] = None
 
 class UserCreate(UserBase):
-    password: str  # Para creación la password debería ser obligatoria
+    password: str  
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None

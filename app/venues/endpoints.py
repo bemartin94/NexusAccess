@@ -5,7 +5,7 @@ from app.venues.schemas import VenueCreate, VenueUpdate, VenueResponse
 from app.venues.dal import VenueDAL
 from core.database import AsyncSessionLocal  
 
-router = APIRouter(prefix="/venues", tags=["venues"])
+router = APIRouter(tags=["Venues"])
 
 async def get_db():
     async with AsyncSessionLocal() as session:

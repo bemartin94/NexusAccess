@@ -7,7 +7,7 @@ def __init__(self, db_session: AsyncSession):
     self.db = db_session
 
 async def create_access(self, access_data: AccessBase) -> AccessResponse:
-    access = Access(**access_data.dict(exclude_unset=True))
+    access = Access(**access_data.model_dump(exclude_unset=True))
     self.db.add(access)
     await self.db.commit()
     await self.db.refresh(access)
