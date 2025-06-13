@@ -72,7 +72,7 @@ class Visitor(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
-    id_card = Column(String, unique=True, index=True)
+    id_card = Column(Integer, unique=True, index=True)
     phone = Column(String, nullable=True)
     email = Column(String, unique=True, index=True)
     picture = Column(String, nullable=True)
@@ -84,7 +84,6 @@ class Visitor(Base):
     id_card_type = relationship("IdCardType", back_populates="visitors")
     supervisor = relationship("Supervisor", back_populates="visitors")
     venue = relationship("Venue", back_populates="visitors")
-
 
 
 class AccessTime(Base):
@@ -103,8 +102,8 @@ class Access(Base):
     venue_id = Column(Integer, ForeignKey("venues.id"))
     visitor_id = Column(Integer, ForeignKey("visitors.id"), nullable=True)
     id_card_type_id = Column(Integer, ForeignKey("id_card_types.id"))
-    supervisor_id = Column(Integer, ForeignKey("supervisors.id"))
-    
+    supervisor_id = Column(Integer, ForeignKey("supervisors.id")) 
+
     access_reason = Column(String, nullable=True)
     department = Column(String, nullable=True)
     is_recurrent = Column(Boolean, nullable=True)
@@ -113,7 +112,7 @@ class Access(Base):
     access = relationship("Access", back_populates="access_time")
     access_time = relationship("AccessTime", uselist=False, back_populates="access")
     id_card_type = relationship("IdCardType")
-    visitor = relationship("Visitor")
-    supervisor = relationship("Supervisor")
-
+    visitor = relationship("Visitor") 
+    venue = relationship("Venue") 
+    supervisor = relationship("Supervisor") 
 

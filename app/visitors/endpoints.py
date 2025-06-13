@@ -23,7 +23,7 @@ async def read_visitor(
     visitor_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    visitor = await VisitorDAL(db).get_visitor_by_id(visitor_id)
+    visitor = await VisitorDAL(db).get_by_id(visitor_id)
     if not visitor:
         raise HTTPException(status_code=404, detail="Visitor not found")
     return visitor
@@ -44,7 +44,10 @@ async def delete_visitor(
     visitor_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    success = await VisitorDAL(db).delete_visitor(visitor_id)
-    if not success:
+    dal = VisitorDAL(db)
+    deleted = await dal.delete(visitor_id)
+
+    if not deleted:
         raise HTTPException(status_code=404, detail="Visitor not found")
+
     return {"message": "Visitor deleted successfully"}

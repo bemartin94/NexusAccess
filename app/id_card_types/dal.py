@@ -8,6 +8,7 @@ class IdCardTypeDAL:
         self.db = db_session
 
     async def create_id_card_type(self, id_card_type_in: IdCardTypeCreate) -> IdCardTypeResponse:
+        print(id_card_type_in.name)
         id_card_type = IdCardType(name=id_card_type_in.name)
         self.db.add(id_card_type)
         await self.db.commit()

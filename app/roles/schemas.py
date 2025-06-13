@@ -5,11 +5,17 @@ class RoleBase(BaseModel):
     name: str
 
 class RoleCreate(RoleBase):
-    pass
+        model_config = {
+        "from_attributes": True,
+        "extra": "forbid"
+    }
 
 class RoleResponse(RoleBase):
     id: int
     users: Optional[List[int]] = None 
 
-    class Config:
-        orm_mode = True
+
+    model_config = {
+    "from_attributes": True,
+    "extra": "forbid"
+}

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict 
 from typing import Optional
 from datetime import datetime
 
@@ -9,8 +9,10 @@ class AccessTimeBase(BaseModel):
 class AccessTimeResponse(AccessTimeBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid"
+    )
 
 class AccessBase(BaseModel):
     venue_id: int
@@ -22,13 +24,21 @@ class AccessBase(BaseModel):
     is_recurrent: Optional[bool] = False
     status: str  # "enabled" o "denied"
 
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid"
+    )
+
 class AccessResponse(AccessBase):
     id: int
     access_time: Optional[AccessTimeResponse] = None
 
-    visitor_name: Optional[str] = None
+    visitor: Optional[str] = None
     venue_name: Optional[str] = None
     supervisor_name: Optional[str] = None
+    id_card_type_name: Optional[str] = None 
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid"
+    )

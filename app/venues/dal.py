@@ -14,12 +14,9 @@ class VenueDAL:
         await self.db.refresh(venue)
         return VenueResponse.model_validate(venue)
 
-    async def get_venue_by_id(self, venue_id: int) -> VenueResponse | None:
+    async def get_venue_by_id(self, venue_id: int) -> Venue | None:
         result = await self.db.execute(select(Venue).filter(Venue.id == venue_id))
-        venue = result.scalars().first()
-        if venue:
-            return VenueResponse.model_validate(venue)
-        return None
+        return result.scalars().first()
 
     async def update_venue(self, venue_id: int, venue_update: VenueUpdate) -> VenueResponse | None:
         venue = await self.get_venue_by_id(venue_id)
