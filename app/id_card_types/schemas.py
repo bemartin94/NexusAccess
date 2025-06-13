@@ -4,11 +4,26 @@ from typing import Optional, List
 class IdCardTypeBase(BaseModel):
     name: str
 
+    model_config = {
+    "from_attributes": True,
+    "extra": "forbid"
+}
+
 class IdCardTypeCreate(IdCardTypeBase):
-    pass
+    name: str
+
+    model_config = {
+    "from_attributes": True,
+    "extra": "forbid"
+}
 
 class IdCardTypeResponse(IdCardTypeBase):
     id: int
 
     class Config:
-        orm_mode = True
+        
+        model_config = {
+        "from_attributes": True,
+        "extra": "forbid"
+    }
+

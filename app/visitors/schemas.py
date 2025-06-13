@@ -21,8 +21,18 @@ class VisitorCreate(VisitorBase):
     id_card: str
     email: EmailStr
 
+    model_config = {
+    "from_attributes": True,
+    "extra": "forbid"
+}
+
 class VisitorUpdate(VisitorBase):
     pass
 
 class VisitorResponse(VisitorBase):
     id: int
+
+    model_config = {
+    "from_attributes": True,
+    "extra": "forbid"
+}

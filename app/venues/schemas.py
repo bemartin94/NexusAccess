@@ -11,14 +11,23 @@ class VenueBase(BaseModel):
     timezone: Optional[str] = None
     supervisor_id: Optional[int] = None
 
+    model_config = {
+        "from_attributes": True,
+        "extra": "forbid"
+    }
 class VenueCreate(VenueBase):
     pass
 
 class VenueUpdate(VenueBase):
-    pass
+       model_config = {
+        "from_attributes": True,
+        "extra": "forbid"
+    }
 
 class VenueResponse(VenueBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True,
+        "extra": "forbid"
+    }
