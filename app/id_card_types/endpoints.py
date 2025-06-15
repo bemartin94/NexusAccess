@@ -26,7 +26,11 @@ async def get_id_card_type(id_card_type_id: int, db: AsyncSession = Depends(get_
     return id_card_type
 
 @router.patch("/{id_card_type_id}", response_model=schemas.IdCardTypeResponse)
-async def update_id_card_type(id_card_type_id: int, updates: dict, db: AsyncSession = Depends(get_db)):
+async def update_id_card_type(
+    id_card_type_id: int,
+    updates: schemas.IdCardTypeUpdate,
+    db: AsyncSession = Depends(get_db)
+):
     updated = await dal.IdCardTypeDAL(db).update_id_card_type(id_card_type_id, updates)
     if not updated:
         raise HTTPException(status_code=404, detail="ID Card Type not found")

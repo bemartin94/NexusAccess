@@ -20,17 +20,22 @@ async def list_roles(skip: int = 0, limit: int = 100, db: AsyncSession = Depends
 
 @router.get("/{role_id}", response_model=schemas.RoleResponse)
 async def get_role(role_id: int, db: AsyncSession = Depends(get_db)):
-    role = await dal.RoleDAL(db).get_role_by_id(role_id)
+    role = await dal.RoleDAL(db).get_role(role_id)
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     return role
 
 @router.patch("/{role_id}", response_model=schemas.RoleResponse)
-async def update_role(role_id: int, updates: dict, db: AsyncSession = Depends(get_db)):
+async def update_role(
+    role_id: int,
+    updates: schemas.RoleCreate, 
+    db: AsyncSession = Depends(get_db)
+):
     updated = await dal.RoleDAL(db).update_role(role_id, updates)
     if not updated:
         raise HTTPException(status_code=404, detail="Role not found")
     return updated
+
 
 @router.delete("/{role_id}")
 async def delete_role(role_id: int, db: AsyncSession = Depends(get_db)):

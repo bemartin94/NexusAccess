@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Table
 from sqlalchemy.orm import relationship
 from .database import Base
+from typing import Optional
 
 user_roles = Table(
     "user_roles",
@@ -97,6 +98,7 @@ class AccessTime(Base):
 
 
 class Access(Base):
+
     __tablename__ = "accesses"
     id = Column(Integer, primary_key=True, index=True)
     venue_id = Column(Integer, ForeignKey("venues.id"))
@@ -109,10 +111,24 @@ class Access(Base):
     is_recurrent = Column(Boolean, nullable=True)
     status = Column(String, nullable=False)
 
-    access = relationship("Access", back_populates="access_time")
     access_time = relationship("AccessTime", uselist=False, back_populates="access")
     id_card_type = relationship("IdCardType")
     visitor = relationship("Visitor") 
     venue = relationship("Venue") 
     supervisor = relationship("Supervisor") 
 
+    @property
+    def visitor_name(self) -> Optional[str]:
+        return self.visitor.name if self.visitor else None
+
+    @property
+    def venue_name(self) -> Optional[str]:
+        return self.venue.name if self.venue else None
+
+    @property
+    def supervisor_name(self) -> Optional[str]:
+        return self.supervisor.name if self.supervisor else None
+
+    @property
+    def id_card_type_name(self) -> Optional[str]:
+        return self.id_card_type.name if self.id_card_type else None

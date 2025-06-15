@@ -26,10 +26,14 @@ async def get_access(access_id: int, db: AsyncSession = Depends(get_db)):
     return access
 
 @router.patch("/{access_id}", response_model=schemas.AccessResponse)
-async def update_access(access_id: int, updates: dict, db: AsyncSession = Depends(get_db)):
-    updated_access = await dal.AccessDAL(db).update_access(access_id, updates)
+async def update_access(
+    access_id: int,
+    access_update: schemas.AccessBase, 
+    db: AsyncSession = Depends(get_db)
+):
+    updated_access = await dal.AccessDAL(db).update_access(access_id, access_update)
     if not updated_access:
-        raise HTTPException(status_code=404, detail="Access not found")
+        raise HTTPException(status_code=404, detail="Access record not found")
     return updated_access
 
 @router.delete("/{access_id}", status_code=status.HTTP_204_NO_CONTENT)

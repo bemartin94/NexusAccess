@@ -33,7 +33,7 @@ class AccessResponse(AccessBase):
     id: int
     access_time: Optional[AccessTimeResponse] = None
 
-    visitor: Optional[str] = None
+    visitor_name: Optional[str] = None
     venue_name: Optional[str] = None
     supervisor_name: Optional[str] = None
     id_card_type_name: Optional[str] = None 

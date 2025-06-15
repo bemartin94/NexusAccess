@@ -35,7 +35,7 @@ async def get_supervisor(
 @router.patch("/{supervisor_id}", response_model=schemas.SupervisorResponse)
 async def update_supervisor(
     supervisor_id: int,
-    updates: dict,
+    updates: schemas.SupervisorUpdate,
     db: AsyncSession = Depends(get_db)
 ):
     updated = await dal.SupervisorDAL(db).update_supervisor(supervisor_id, updates)
