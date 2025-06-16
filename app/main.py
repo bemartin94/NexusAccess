@@ -6,12 +6,17 @@ from app.id_card_types.endpoints import router as id_card_types_router
 from app.roles.endpoints import router as roles_router
 from app.supervisors.endpoints import router as supervisors_router
 from app.users.endpoints import router as users_router
+from app.auth.endpoints import router as auth_router
 
+app = FastAPI(
+    title="NexusAccess API",
+    description="API para la gestión de accesos en espacios de trabajo.",
+    version="0.1.0",
+)
 
-
-app = FastAPI()
 prefix_base = "/app/v1"
 
+app.include_router(auth_router, prefix="/app/v1/auth")
 app.include_router(visitors_router, prefix=f"{prefix_base}/visitors")
 app.include_router(venues_router, prefix=f"{prefix_base}/venues")
 app.include_router(access_router, prefix=f"{prefix_base}/access")
