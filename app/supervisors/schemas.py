@@ -5,7 +5,7 @@ class SupervisorBase(BaseModel):
     name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
-    email: EmailStr # Email es mandatorio
+    email: EmailStr
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -15,11 +15,11 @@ class SupervisorBase(BaseModel):
 class SupervisorCreate(SupervisorBase):
     email: EmailStr 
 
-class SupervisorUpdate(BaseModel): # Hereda directamente de BaseModel para hacer todo opcional
+class SupervisorUpdate(BaseModel): 
     name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
-    email: Optional[EmailStr] = None # Email es opcional para la actualización
+    email: Optional[EmailStr] = None 
 
     model_config = ConfigDict(
         from_attributes=True,

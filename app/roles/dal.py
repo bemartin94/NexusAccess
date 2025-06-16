@@ -1,12 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload # Re-activar para eager loading de 'users'
+from sqlalchemy.orm import selectinload 
 from sqlalchemy.exc import IntegrityError
 from typing import Optional, List
 
-from core.models import Role, User # Asegúrate de importar Role y User
-from app.roles.schemas import RoleCreate, RoleResponse # Asumo que tienes RoleCreate y RoleResponse
-# from app.users.schemas import UserResponse # No es necesario si RoleResponse incluye List[int]
+from core.models import Role, User 
+from app.roles.schemas import RoleCreate, RoleResponse 
 from fastapi import HTTPException, status
 
 class RoleDAL:
@@ -20,13 +19,10 @@ class RoleDAL:
             
             self.db.add(new_role)
             await self.db.commit()
-            await self.db.refresh(new_role) # Refrescar para obtener el ID
-
-            # Volver a consultar el rol para asegurar que está en un estado que Pydantic pueda procesar
-            # y que la relación 'users' esté eager-loaded para evitar MissingGreenlet
+            await self.db.refresh(new_role)
             result = await self.db.execute(
                 select(Role)
-                .options(selectinload(Role.users)) # Eager load la relación 'users'
+                .options(selectinload(Role.users)) 
                 .filter(Role.id == new_role.id)
             )
             loaded_role = result.scalars().first()
@@ -38,7 +34,7 @@ class RoleDAL:
         
         except IntegrityError as e:
             await self.db.rollback()
-            if "UNIQUE constraint failed" in str(e) and "roles.name" in str(e): # Asumiendo que 'name' es unique
+            if "UNIQUE constraint failed" in str(e) and "roles.name" in str(e): 
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="A role with this name already exists."
@@ -57,7 +53,7 @@ class RoleDAL:
     async def get_role(self, role_id: int) -> Optional[RoleResponse]:
         result = await self.db.execute(
             select(Role)
-            .options(selectinload(Role.users)) # Eager load 'users' para get_role
+            .options(selectinload(Role.users)) 
             .filter(Role.id == role_id)
         )
         role = result.scalars().first()
@@ -68,13 +64,13 @@ class RoleDAL:
     async def list_roles(self, skip: int = 0, limit: int = 100) -> List[RoleResponse]:
         result = await self.db.execute(
             select(Role)
-            .options(selectinload(Role.users)) # Eager load 'users' para list_roles
+            .options(selectinload(Role.users))
             .offset(skip).limit(limit)
         )
         roles = result.scalars().all()
         return [RoleResponse.model_validate(r, from_attributes=True) for r in roles]
 
-    async def update_role(self, role_id: int, updates: RoleCreate) -> Optional[RoleResponse]: # Usando RoleCreate para updates como ejemplo
+    async def update_role(self, role_id: int, updates: RoleCreate) -> Optional[RoleResponse]: 
         result = await self.db.execute(select(Role).filter(Role.id == role_id))
         role = result.scalars().first()
         if not role:
@@ -98,10 +94,9 @@ class RoleDAL:
             await self.db.commit()
             await self.db.refresh(role)
             
-            # Recargar el rol con las relaciones después de la actualización
             result = await self.db.execute(
                 select(Role)
-                .options(selectinload(Role.users)) # Eager load 'users' para update_role
+                .options(selectinload(Role.users)) 
                 .filter(Role.id == role.id)
             )
             updated_role = result.scalars().first()

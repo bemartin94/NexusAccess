@@ -88,3 +88,9 @@ class UserDAL:
         users = result.scalars().all()
         return [UserResponse.model_validate(user, from_attributes=True) for user in users]
 
+    async def get_user_by_email(self, email: str) -> Optional[User]: 
+        result = await self.db.execute(
+            select(User)
+            .filter(User.email == email)
+        )
+        return result.scalars().first()
