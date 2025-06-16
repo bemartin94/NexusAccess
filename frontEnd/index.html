@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Visitas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <h1>Registro de Visitas</h1>
+    <ul class="nav-links">
+      <li><a href="#">Inicio</a></li>
+      <li><a href="#">Visitas</a></li>
+      <li><a href="#">Cerrar sesión</a></li>
+    </ul>
+  </nav>
+
+  <main class="main-container">
+    <section class="filtros">
+      <label>Desde: <input type="date"></label>
+      <label>Hasta: <input type="date"></label>
+      <button class="btn">Limpiar</button>
+    </section>
+
+    <section class="tabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Visitante</th>
+            <th>Documento</th>
+            <th>Entidad</th>
+            <th>Responsable</th>
+            <th>Hora Ing.</th>
+            <th>Hora Sal.</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>06-06-2025</td>
+            <td>María Pérez</td>
+            <td>12345678</td>
+            <td>IBM</td>
+            <td>Antonio</td>
+            <td>08:30</td>
+            <td><button class="btn-salida">Marcar Salida</button></td>
+            <td>
+              <button class="btn-ver">👁️</button>
+              <button class="btn-eliminar">❌</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
+
