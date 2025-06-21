@@ -1,60 +1,190 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Visitas</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Visita</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-  <nav class="navbar">
-    <h1>Registro de Visitas</h1>
-    <ul class="nav-links">
-      <li><a href="#">Inicio</a></li>
-      <li><a href="#">Visitas</a></li>
-      <li><a href="#">Cerrar sesión</a></li>
-    </ul>
-  </nav>
+    <nav class="navbar">
+        <img class="logo-Nav" src="assets/NexusAccessLogo.png" width="100" alt="Logo">
+        <h1>Registro de Visitas</h1>
+        <ul class="nav-links">
+            <li><a href="#">Registro de visitas</a></li>
+            <li><a href="registros.html">Visitas</a></li> <li><a href="#" id="logoutButton">Cerrar sesión</a></li> </ul>
+    </nav>
 
-  <main class="main-container">
-    <section class="filtros">
-      <label>Desde: <input type="date"></label>
-      <label>Hasta: <input type="date"></label>
-      <button class="btn">Limpiar</button>
-    </section>
+    <div class="container">
+        <h2>Crear Registro de Visita</h2>
+        <form id="createVisitForm"> <div class="form-group">
+                <label for="fecha">Fecha</label>
+                <input type="date" id="fecha" name="fecha" required>
+            </div>
+            <div class="form-group">
+                <label for="nombre_visitante">Nombre</label>
+                <input type="text" id="nombre_visitante" name="nombre_visitante" placeholder="Nombre" required>
+            </div>
+            <div class="form-group">
+                <label for="apellido_visitante">Apellido</label>
+                <input type="text" id="apellido_visitante" name="apellido_visitante" placeholder="Apellido" required>
+            </div>
+            <div class="form-group">
+                <label for="tipo_documento_radio">Tipo de Documento</label>
+                <input type="radio" id="tipo_doc_pasaporte" name="id_card_type" value="1" required> Pasaporte<br>
+                <input type="radio" id="tipo_doc_dni" name="id_card_type" value="2"> DNI<br>
+                <input type="radio" id="tipo_doc_cedula" name="id_card_type" value="3"> Cédula<br>
+            </div>
+            <div class="form-group">
+                <label for="documento">Número de Documento</label>
+                <input type="text" id="documento" name="documento" placeholder="Número de Documento" required>
+            </div>
+             <div class="form-group">
+                <label for="email_visitante">Email</label>
+                <input type="email" id="email_visitante" name="email_visitante" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+                <label for="phone_visitante">Teléfono</label>
+                <input type="text" id="phone_visitante" name="phone_visitante" placeholder="Teléfono" required>
+            </div>
+            <div class="form-group">
+                <label for="sede">Sede</label>
+                <input type="text" id="sede" name="sede" placeholder="Sede" required readonly>
+            </div>
+            <div class="form-group">
+                <label for="responsable">ID del Responsable (Supervisor)</label>
+                <input type="number" id="supervisor_id" name="supervisor_id" placeholder="ID del Responsable" required>
+            </div>
+            <div class="form-group">
+                <label for="hora_ing">Hora Ingreso</label>
+                <input type="time" id="hora_ing" name="hora_ing" required>
+            </div>
+             <div class="form-group">
+                <label for="reason_visit">Motivo de Visita</label>
+                <input type="text" id="reason_visit" name="reason_visit" placeholder="Motivo de la visita" required>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn">Crear Registro</button>
+            </div>
+            <div id="statusMessage" style="margin-top: 15px; text-align: center;"></div> </form>
+    </div>
 
-    <section class="tabla">
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Visitante</th>
-            <th>Documento</th>
-            <th>Entidad</th>
-            <th>Responsable</th>
-            <th>Hora Ing.</th>
-            <th>Hora Sal.</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>06-06-2025</td>
-            <td>María Pérez</td>
-            <td>12345678</td>
-            <td>IBM</td>
-            <td>Antonio</td>
-            <td>08:30</td>
-            <td><button class="btn-salida">Marcar Salida</button></td>
-            <td>
-              <button class="btn-ver">👁️</button>
-              <button class="btn-eliminar">❌</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-  </main>
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        const API_VERSION_PREFIX = '/app/v1';
+
+        // Lógica de llenado de Sede y redirección si no hay token/sede
+        document.addEventListener('DOMContentLoaded', () => {
+            const sedeInput = document.getElementById('sede');
+            const userVenueId = localStorage.getItem('user_venue_id');
+            const accessToken = localStorage.getItem('access_token'); // También verificar el token
+
+            if (!accessToken) {
+                alert('No ha iniciado sesión. Será redirigido a la página de login.');
+                window.location.href = 'login.html';
+                return; // Detener la ejecución
+            }
+
+            if (userVenueId) {
+                sedeInput.value = userVenueId;
+            } else {
+                alert('No se pudo obtener la sede del usuario. Por favor, inicie sesión de nuevo.');
+                window.location.href = '/login.html';
+            }
+
+            // Manejar botón de cerrar sesión
+            const logoutButton = document.getElementById('logoutButton');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    localStorage.clear(); // Limpia todos los datos de sesión
+                    alert('Sesión cerrada correctamente.');
+                    window.location.href = 'login.html'; // Redirige al login
+                });
+            }
+        });
+
+        // Manejar el envío del formulario de registro de visita
+        document.getElementById('createVisitForm').addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevenir el envío tradicional del formulario
+
+            const statusMessageDiv = document.getElementById('statusMessage');
+            statusMessageDiv.textContent = 'Enviando...';
+            statusMessageDiv.style.color = 'black';
+
+            // Recoger los datos del formulario
+            const fecha = document.getElementById('fecha').value;
+            const nombreVisitante = document.getElementById('nombre_visitante').value;
+            const apellidoVisitante = document.getElementById('apellido_visitante').value;
+            const tipoDocumentoRadio = document.querySelector('input[name="id_card_type"]:checked');
+            const idCardTypeId = tipoDocumentoRadio ? parseInt(tipoDocumentoRadio.value) : null;
+            const documento = document.getElementById('documento').value;
+            const emailVisitante = document.getElementById('email_visitante').value;
+            const phoneVisitante = document.getElementById('phone_visitante').value;
+            const sedeId = parseInt(document.getElementById('sede').value);
+            const supervisorId = parseInt(document.getElementById('supervisor_id').value);
+            const horaIngreso = document.getElementById('hora_ing').value; // Formato HH:MM
+            const reasonVisit = document.getElementById('reason_visit').value;
+
+
+            // Construir el objeto de datos del visitante para la API
+            // Ajusta los nombres de las propiedades para que coincidan con tu VisitorCreate Schema
+            const visitorData = {
+                name: nombreVisitante,
+                last_name: apellidoVisitante,
+                id_card: parseInt(documento), // Asegúrate de que sea un número
+                phone: phoneVisitante,
+                email: emailVisitante,
+                // picture: "default_pic.jpg", // Si tienes una imagen por defecto
+                supervisor_id: supervisorId,
+                venue_id: sedeId,
+                id_card_type_id: idCardTypeId,
+                // Si la fecha y hora de ingreso son parte del esquema del visitante
+                // y no de un registro de visita separado, tendrías que incluirlas aquí
+                // O el backend las generará. Tu esquema de visitante no las incluye.
+            };
+
+            console.log("Datos a enviar:", visitorData); // Para depuración
+
+            const accessToken = localStorage.getItem('access_token');
+            if (!accessToken) {
+                alert('No hay token de autenticación. Por favor, inicie sesión.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}${API_VERSION_PREFIX}/visitors/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify(visitorData)
+                });
+
+                const result = await response.json();
+                console.log("Respuesta de la API:", result); // Para depuración
+
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${result.detail || JSON.stringify(result)}`);
+                }
+
+                statusMessageDiv.textContent = `Registro de visitante creado con éxito. ID: ${result.id}`;
+                statusMessageDiv.style.color = 'green';
+                event.target.reset(); // Limpiar el formulario
+                // Mantener el campo sede con el valor predeterminado después de resetear
+                document.getElementById('sede').value = localStorage.getItem('user_venue_id');
+
+            } catch (error) {
+                console.error('Error al crear registro de visitante:', error);
+                statusMessageDiv.textContent = `Error al crear registro: ${error.message}`;
+                statusMessageDiv.style.color = 'red';
+            }
+        });
+    </script>
+
 </body>
-</html>
 
+</html>
