@@ -8,6 +8,7 @@ from app.users import schemas as users_schemas # Importa los schemas de usuarios
 from app.auth import schemas as auth_schemas # Importa los schemas de autenticación (UserLogin, Token)
 from app.auth import security as auth_security # Importa el módulo de seguridad (hashing, JWT)
 from core.database import AsyncSessionLocal # Importa la función para obtener la sesión de DB
+from core.models import User # Asegúrate de que User esté importado si se usa directamente (aunque aquí no se usa en el endpoint)
 
 router = APIRouter(tags=["Authentication"])
 
@@ -19,10 +20,10 @@ async def get_db():
 # Endpoint de Registro de Usuarios
 @router.post("/register", response_model=users_schemas.UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(
-    user_in: users_schemas.UserCreate, # Usamos el UserCreate existente para el registro
+    user_in: users_schemas.UserCreate, # Recibe la contraseña en texto plano aquí desde el frontend
     db: AsyncSession = Depends(get_db)
 ):
-    # Verificar si ya existe un usuario con el mismo email
+    # 1. Verificar si ya existe un usuario con el mismo email
     existing_user = await users_dal.UserDAL(db).get_user_by_email(user_in.email)
     if existing_user:
         raise HTTPException(
@@ -30,13 +31,19 @@ async def register_user(
             detail="A user with this email already exists."
         )
     
-    # Hashear la contraseña antes de guardarla
+    # 2. Hashear la contraseña antes de guardarla
+    # user_in es el objeto Pydantic UserCreate que FastAPI ha creado a partir de la solicitud.
+    # user_in.password contiene la contraseña en texto plano.
     hashed_password = auth_security.get_password_hash(user_in.password)
-    user_data = user_in.model_dump()
-    user_data["password"] = hashed_password # Reemplazar la contraseña en texto plano con el hash
 
-    # Crear el usuario en la base de datos
-    new_user = await users_dal.UserDAL(db).create_user(users_schemas.UserCreate(**user_data))
+    # 3. Crear una NUEVA instancia del modelo UserCreate
+    # Esta nueva instancia tendrá la contraseña hasheada, lista para ser persistida.
+    # Usamos .model_copy() para crear una copia de user_in y sobrescribir solo el campo 'password'.
+    user_to_create = user_in.model_copy(update={"password": hashed_password})
+
+    # 4. Crear el usuario en la base de datos a través del DAL
+    # user_to_create es el objeto UserCreate con la contraseña ya hasheada.
+    new_user = await users_dal.UserDAL(db).create_user(user_to_create)
     
     return new_user
 
@@ -52,12 +59,14 @@ async def login_for_access_token(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Usuario o contraseña incorrectos",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
     # Verificar la contraseña hasheada
-    if not auth_security.verify_password(form_data.password, user.password): # user.password debe ser el hash
+    # form_data.password es la contraseña en texto plano del formulario de login.
+    # user.password debe ser la contraseña hasheada obtenida de la DB.
+    if not auth_security.verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -71,5 +80,10 @@ async def login_for_access_token(
         expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
-
+    # Retornar el token y la información del usuario/sede
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": user.id,         # Incluye el ID del usuario
+        "venue_id": user.venue_id   # Incluye el ID de la sede del usuario
+    }
