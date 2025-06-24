@@ -1,117 +1,118 @@
-from datetime import datetime, timedelta
-from typing import Optional
-
-import jwt # Importamos PyJWT
-from jwt import PyJWTError # Clase de excepción para PyJWT
+# app/auth/security.py
+from datetime import datetime, timedelta, timezone
+from typing import Optional, List
+from jose import JWTError, jwt
 from passlib.context import CryptContext
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload # ### CAMBIO AQUÍ: Importamos selectinload ###
 
-from core.config import settings 
-from core.database import AsyncSessionLocal # Necesario para la dependencia de DB
-from core.models import User # Importamos el modelo User para obtener el usuario
+from core.config import settings
+from core.database import AsyncSessionLocal
+from core.models import User, Role # ### CAMBIO AQUÍ: Importamos Role ###
+from app.auth.schemas import TokenPayload # ### CAMBIO AQUÍ: Importamos TokenPayload ###
 
-# OAuth2PasswordBearer es una clase auxiliar de FastAPI para la seguridad basada en OAuth2
-# Le decimos dónde esperar el token (en /app/v1/auth/token)
+# Esquema de seguridad para OAuth2 con token de portador
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/app/v1/auth/token")
 
 # Contexto para el hash de contraseñas
-# Usamos bcrypt como algoritmo por ser robusto y recomendado
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# --- Funciones para el Hashing de Contraseñas ---
-
+# --- Funciones de Hash de Contraseñas ---
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verifica si una contraseña en texto plano coincide con una contraseña hasheada.
-    """
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    """
-    Genera el hash de una contraseña en texto plano.
-    """
     return pwd_context.hash(password)
 
-# --- Funciones para JWT (JSON Web Tokens) ---
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Crea un token de acceso JWT.
-    data: Diccionario con los datos a incluir en el payload del token (ej. {"sub": user_email}).
-    expires_delta: Opcional, tiempo de vida del token. 
-    """
+# --- Funciones de JWT ---
+def create_access_token(
+    data: dict, expires_delta: Optional[timedelta] = None
+) -> str:
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        # Usamos el tiempo de expiración definido en core/config.py
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    # Añadimos el tiempo de expiración al payload
-    to_encode.update({"exp": expire})
-    
-    # Codificamos el JWT usando la clave secreta y el algoritmo definidos en core/config.py
-    # PyJWT.encode()
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire.timestamp()})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-def decode_access_token(token: str) -> Optional[dict]:
-    """
-    Decodifica un token de acceso JWT y extrae su payload.
-    Devuelve el payload si es válido, None si el token es inválido o ha expirado.
-    """
-    try:
-        # Decodificamos el token usando la clave secreta y el algoritmo
-        # PyJWT.decode()
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload
-    except PyJWTError: # Captura la excepción específica de PyJWT
-        # Captura cualquier error relacionado con JWT (ej. token inválido, expirado)
-        return None
-
-# --- Dependencia para proteger Endpoints ---
-
-# Necesitamos una función para obtener la sesión de DB dentro de esta dependencia
-async def get_db_for_security():
+# --- Dependencia para la base de datos ---
+async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 
+# --- Dependencia para obtener el usuario actual a partir del token ---
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), # FastAPI extrae el token del encabezado Authorization
-    db: AsyncSession = Depends(get_db_for_security) # Obtiene una sesión de DB
-) -> User: # Esta dependencia devolverá un objeto User ORM
-    """
-    Dependencia de FastAPI para obtener el usuario autenticado a partir de un JWT.
-    Lanza HTTPException si el token es inválido, ha expirado o el usuario no existe.
-    """
+    db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
-    # Decodificar el token
-    payload = decode_access_token(token)
-    if payload is None:
-        raise credentials_exception
-    
-    # Obtener el email del payload (el "sub" del token)
-    email: str = payload.get("sub")
-    if email is None:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        # Aseguramos que el sub sea un string (email en nuestro caso, o ID si lo usas)
+        # El sub aquí será el email del usuario.
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+        
+        # ### CAMBIO AQUÍ: Validamos y extraemos los roles del payload ###
+        token_data = TokenPayload(**payload)
+        user_email = token_data.user_email
+        user_id = token_data.user_id
+        user_roles = token_data.user_roles # Esto ya vendrá del token
+        venue_id = token_data.venue_id
+
+    except JWTError:
         raise credentials_exception
 
-    # Buscar el usuario en la base de datos
+    # ### CAMBIO AQUÍ: Cargamos el usuario incluyendo sus roles y sede ###
+    # Usamos selectinload para cargar los roles y el venue en la misma consulta
     result = await db.execute(
-        select(User).filter(User.email == email)
+        select(User)
+        .options(selectinload(User.roles), selectinload(User.venue))
+        .filter(User.id == user_id, User.email == user_email)
     )
     user = result.scalars().first()
-    
+
     if user is None:
         raise credentials_exception
     
+    # ### CAMBIO AQUÍ: Verificamos que los roles cargados coincidan con los del token (opcional, pero buena práctica) ###
+    # Esto asegura que si los roles del usuario cambian en la DB después de emitir el token,
+    # el token se invalide para esas autorizaciones específicas.
+    # if sorted(user.role_names) != sorted(user_roles):
+    #    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User roles changed, please re-login.")
+    
     return user
 
+# --- Dependencia para verificar roles ---
+def has_role(required_roles: List[str]):
+    def role_checker(current_user: User = Depends(get_current_user)):
+        # Si no se requieren roles, cualquier usuario autenticado pasa
+        if not required_roles:
+            return current_user
+            
+        # Comprueba si el usuario tiene AL MENOS UNO de los roles requeridos
+        for role in required_roles:
+            if role in current_user.role_names:
+                return current_user
+        
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    return role_checker
+
+# Roles predefinidos para facilitar su uso
+SYSTEM_ADMINISTRATOR = ["System Administrator"]
+VENUE_SUPERVISOR = ["Venue Supervisor"]
+GUEST_USER = ["Guest User"]
+# Un usuario puede tener múltiples roles, por ejemplo:
+# ADMIN_OR_SUPERVISOR = ["System Administrator", "Venue Supervisor"]

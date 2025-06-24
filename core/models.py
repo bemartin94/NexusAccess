@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Table
 from sqlalchemy.orm import relationship
 from .database import Base
-from typing import Optional
+from typing import Optional, List # agregue List
 
 user_roles = Table(
     "user_roles",
@@ -19,10 +19,20 @@ class User(Base):
     password = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     email = Column(String, unique=True, index=True)
-    venue_id = Column(Integer, ForeignKey("venues.id"))
+    venue_id = Column(Integer, ForeignKey("venues.id"), nullable=True) #agregue nullable=True
 
     roles = relationship("Role", secondary=user_roles, back_populates="users")
     venue = relationship("Venue", back_populates="users")
+
+    # ¡IMPORTANTE! La propiedad 'role_names' DEBE estar DENTRO de la clase User.
+    @property
+    def role_names(self) -> List[str]:
+        """Retorna una lista de los nombres de los roles del usuario."""
+        # Se asegura de que la relación 'roles' esté cargada.
+        # SQLAlchemy ya maneja la carga perezosa aquí si no se usó selectinload.
+        # Iterar sobre self.roles ya provocará la carga si es necesario.
+        return [role.name for role in self.roles]                         
+
 
 class Venue(Base):
     __tablename__ = "venues"
@@ -39,13 +49,13 @@ class Venue(Base):
     users = relationship("User", back_populates="venue")
     supervisor = relationship("Supervisor", back_populates="venues")
     visitors = relationship("Visitor", back_populates="venue")
+    accesses = relationship("Access", back_populates="venue") #agregue esta relacion
     
-
 
 class Role(Base):
     __tablename__ = "roles"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True) # elimine index = True
+    name = Column(String,unique=True, nullable=False) #agregue unique
 
     users = relationship("User", secondary=user_roles, back_populates="roles")
 
@@ -60,6 +70,7 @@ class Supervisor(Base):
 
     venues = relationship("Venue", back_populates="supervisor")
     visitors = relationship("Visitor", back_populates="supervisor")
+    accesses = relationship("Access", back_populates="supervisor")#agregue esta relacion
 
 class IdCardType(Base):
     __tablename__ = "id_card_types"
@@ -85,6 +96,7 @@ class Visitor(Base):
     id_card_type = relationship("IdCardType", back_populates="visitors")
     supervisor = relationship("Supervisor", back_populates="visitors")
     venue = relationship("Venue", back_populates="visitors")
+    accesses = relationship("Access", back_populates="visitor") # agregue esta relacion
 
 
 class AccessTime(Base):
@@ -113,9 +125,9 @@ class Access(Base):
 
     access_time = relationship("AccessTime", uselist=False, back_populates="access")
     id_card_type = relationship("IdCardType")
-    visitor = relationship("Visitor") 
-    venue = relationship("Venue") 
-    supervisor = relationship("Supervisor") 
+    visitor = relationship("Visitor", back_populates="accesses") # ### CAMBIO AQUÍ: Agregado back_populates="accesses" ###
+    venue = relationship("Venue", back_populates="accesses")     # ### CAMBIO AQUÍ: Agregado back_populates="accesses" ###
+    supervisor = relationship("Supervisor", back_populates="accesses")
 
     @property
     def visitor_name(self) -> Optional[str]:
