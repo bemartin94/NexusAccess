@@ -1,81 +1,79 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional
-from datetime import datetime, date, time # Importar date y time también
+from datetime import datetime, date, time
 
-# El esquema para los tiempos de acceso.
-# Considerando que el frontend envía fecha y hora por separado,
-# y que el exit_date/time no se envía en la creación inicial.
-class AccessTimeBase(BaseModel):
-    # La fecha y hora de ingreso para la creación
-    entry_date: date # Usar 'date'
-    entry_time: time # Usar 'time'
-    exit_date: Optional[date] = None
-    exit_time: Optional[time] = None
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        extra="forbid"
-    )
-
-class AccessTimeResponse(AccessTimeBase):
-    id: int
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        extra="forbid"
-    )
-
-# El esquema base para el registro de acceso
 class AccessBase(BaseModel):
     venue_id: int
     id_card_type_id: int
-    visitor_id: Optional[int] = None # Este será el ID del visitante ya existente o recién creado
+    visitor_id: Optional[int] = None
     supervisor_id: int
-    reason: Optional[str] = None # Usé 'reason' para que coincida mejor con 'reason_visit' del frontend
+    access_reason: Optional[str] = None
     department: Optional[str] = None
     is_recurrent: Optional[bool] = False
-    status: str = "enabled" # Valor por defecto 'enabled' si siempre inicia así
+    status: str = "enabled"
 
-    model_config = ConfigDict(
-        from_attributes=True,
-        extra="forbid"
-    )
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
 
-# Esquema para la creación de un registro de acceso desde el frontend
 class AccessCreate(AccessBase):
-    # Hereda los campos de AccessBase
-    # Añadimos los campos de fecha y hora de entrada que vienen del frontend
-    entry_date: date
-    entry_time: time
-    # El campo 'reason' (o access_reason) del frontend 'reason_visit' es obligatorio
-    reason: str
+    pass
 
+class VisitCreateRequest(BaseModel):
+    name: str
+    last_name: str
+    id_card: str
+    email: EmailStr
+    phone: str
+    id_card_type_id: int
 
-# Esquema para actualizar un registro de acceso (ej. para registrar la salida)
+    fecha: date
+    hora_ing: time
+    reason_visit: str
+    sede: int
+    supervisor_id: int
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+class VisitorCreate(BaseModel):
+    name: str
+    last_name: str
+    id_card: str
+    email: EmailStr
+    phone: str
+    id_card_type_id: int
+    supervisor_id: int
+    venue_id: int
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+class VisitorResponse(VisitorCreate):
+    id: int
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+class VisitorUpdate(BaseModel):
+    name: Optional[str] = None
+    last_name: Optional[str] = None
+    id_card: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+    picture: Optional[str] = None
+    id_card_type_id: Optional[int] = None
+    supervisor_id: Optional[int] = None
+    venue_id: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
 class AccessUpdate(BaseModel):
-    exit_date: Optional[date] = None
-    exit_time: Optional[time] = None
-    status: Optional[str] = None # Podrías cambiar el estado al salir, ej. "completed"
+    exit_date: Optional[datetime] = None
+    status: Optional[str] = None
 
-    model_config = ConfigDict(
-        from_attributes=True,
-        extra="forbid"
-    )
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
 
-# Esquema para la respuesta de un registro de acceso
 class AccessResponse(AccessBase):
     id: int
-    # Para incluir los tiempos de acceso directamente, o como un objeto anidado
-    # access_time: Optional[AccessTimeResponse] = None # Puedes mantenerlo si tienes una tabla AccessTimes separada
-    # Si la fecha y hora de acceso son parte de la tabla principal de Access:
-    entry_date: date
-    entry_time: time
-    exit_date: Optional[date] = None
-    exit_time: Optional[time] = None
-
-
-    # Campos adicionales para la respuesta que vienen de JOINs o relaciones
+    entry_date: Optional[datetime] = None
+    exit_date: Optional[datetime] = None
     visitor_name: Optional[str] = None
+    visitor_id_card: Optional[str] = None
     venue_name: Optional[str] = None
     supervisor_name: Optional[str] = None
     id_card_type_name: Optional[str] = None

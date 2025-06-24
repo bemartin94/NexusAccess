@@ -1,24 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Visita</title>
+    <title>Registrar Visita</title>
+    <!-- Asegúrate de que esta ruta sea correcta para tu CSS -->
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <nav class="navbar">
-        <img class="logo-Nav" src="assets/NexusAccessLogo.png" width="100" alt="Logo">
-        <h1>Registro de Visitas</h1>
-        <ul class="nav-links">
-            <li><a href="#">Registro de visitas</a></li>
-            <li><a href="registros.html">Visitas</a></li>
-            <li><a href="#" id="logoutButton">Cerrar sesión</a></li>
-        </ul>
-    </nav>
+    <header>
+        <nav class="navbar">
+            <!-- Asegúrate de que la ruta de tu logo sea correcta -->
+            <img class="logo-Nav" src="assets/NexusAccessLogo.png" width="100" alt="Logo">
+            <h1>Registrar Visita</h1> <!-- Título del header para la página de registro -->
+            <ul class="nav-links">
+                <li><a href="index.html" class="active">Registrar visita</a></li> <!-- Clase 'active' -->
+                <li><a href="registros.html">Historial de visitas</a></li>
+                <li><a href="#" id="logoutButton">Cerrar sesión</a></li>
+            </ul>
+        </nav>
+    </header>
 
+    <!-- CAMBIO CLAVE AQUÍ: Usamos 'main-container' para el div principal del formulario -->
     <div class="container">
         <h2>Crear Registro de Visita</h2>
         <form id="createVisitForm">
@@ -40,9 +45,12 @@
             </div>
             <div class="form-group">
                 <label for="tipo_documento_radio">Tipo de Documento</label>
-                <input type="radio" id="tipo_doc_pasaporte" name="id_card_type" value="1" required> Pasaporte<br>
-                <input type="radio" id="tipo_doc_dni" name="id_card_type" value="2"> DNI<br>
-                <input type="radio" id="tipo_doc_cedula" name="id_card_type" value="3"> Cédula<br>
+                <!-- Usar div para agrupar radios y controlar mejor el diseño -->
+                <div>
+                    <input type="radio" id="tipo_doc_pasaporte" name="id_card_type" value="1" required> <label for="tipo_doc_pasaporte">Pasaporte</label><br>
+                    <input type="radio" id="tipo_doc_dni" name="id_card_type" value="2"> <label for="tipo_doc_dni">DNI</label><br>
+                    <input type="radio" id="tipo_doc_cedula" name="id_card_type" value="3"> <label for="tipo_doc_cedula">Cédula</label><br>
+                </div>
             </div>
             <div class="form-group">
                 <label for="documento">Número de Documento</label>
@@ -71,12 +79,19 @@
             <div class="form-actions">
                 <button type="submit" class="btn">Crear Registro</button>
             </div>
-            <div id="statusMessage" style="margin-top: 15px; text-align: center;"></div>
+            <div id="statusMessage" class="status-message"></div> <!-- Usamos la clase status-message para que se estile -->
         </form>
     </div>
 
+    <!-- No te olvides de un footer si quieres consistencia -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Sistema de Control de Acceso</p>
+        </div>
+    </footer>
 
     <script src="js/index.js"></script>
+    <script src="js/logout.js"></script> <!-- Si tienes un logout.js separado -->
 </body>
 
 </html>
