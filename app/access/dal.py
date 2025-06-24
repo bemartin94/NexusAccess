@@ -1,6 +1,7 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import date, datetime
 
@@ -110,50 +111,46 @@ class AccessDAL:
 
 
     async def get_access_records(
-        self,
-        date_filter: Optional[date] = None,
-        id_card_filter: Optional[str] = None,
-        venue_id: Optional[int] = None,
-        skip: int = 0,
-        limit: int = 100
+    self,
+    date_filter: Optional[date] = None,
+    id_card_filter: Optional[str] = None,
+    venue_id: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 100
     ) -> List[AccessResponse]:
         """
         Obtiene una lista de registros de acceso con filtros y paginación.
         Incluye los detalles completos de visitante, sede, supervisor y tiempos.
         """
-        # --- ¡CORRECCIÓN AQUÍ! Usar Access.access_time (singular) ---
-        query = select(Access) \
-            .join(Access.visitor) \
-            .join(Access.id_card_type) \
-            .join(Access.venue) \
-            .join(Access.supervisor) \
-            .outerjoin(Access.access_time) # <-- Cambiado de access_times a access_time
+        query = (
+            select(Access)
+            .options(
+                selectinload(Access.visitor),
+                selectinload(Access.venue),
+                selectinload(Access.supervisor),
+                selectinload(Access.access_time),
+                selectinload(Access.id_card_type),
+            )
+        )
 
-        # Aplicar filtro por sede del usuario autenticado
         if venue_id is not None:
             query = query.where(Access.venue_id == venue_id)
 
-        # Aplicar filtro por fecha de entrada (en AccessTime)
-        # Necesitamos AccessTime.access_date porque Access.entry_date es una @property
         if date_filter:
-            query = query.where(func.date(AccessTime.access_date) == date_filter)
+            query = query.join(Access.access_time).where(
+                func.date(AccessTime.access_date) == date_filter
+            )
 
-        # Aplicar filtro por número de documento (en Visitor)
         if id_card_filter:
-            query = query.where(Visitor.id_card.ilike(f"%{id_card_filter}%"))
-        
-        # Ordenar por fecha de entrada descendente (desde AccessTime)
-        query = query.order_by(AccessTime.access_date.desc())
+            query = query.join(Access.visitor).where(
+                Visitor.id_card.ilike(f"%{id_card_filter}%")
+            )
 
-        # Aplicar paginación
+        query = query.order_by(AccessTime.access_date.desc())
         query = query.offset(skip).limit(limit)
 
         result = await self.db_session.execute(query)
-        accesses_db = result.unique().scalars().all() # unique() es importante para evitar duplicados por joins
-        
-        # Ya no es necesario recargar access_times ni forzar lista vacía aquí
-        # porque la propiedad access_time del modelo Access ya maneja el caso de None
-        # y AccessResponse mapeará las propiedades calculadas.
+        accesses_db = result.unique().scalars().all()
 
         return [AccessResponse.model_validate(access) for access in accesses_db]
 
