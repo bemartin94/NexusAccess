@@ -8,8 +8,6 @@ from app.venues.schemas import VenueResponse
 class UserBase(BaseModel):
     name: Optional[str] = None
     last_name: Optional[str] = None
-    # No incluimos 'password' aquí directamente para evitar pasarlo accidentalmente
-    # en operaciones base donde no es necesario.
     phone: Optional[str] = None
     email: EmailStr
     venue_id: Optional[int] = None # ID de la sede a la que pertenece el usuario
