@@ -1,13 +1,14 @@
+
 import os
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict # Asegúrate de que tengas pydantic-settings instalado
 
-load_dotenv()
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-class Settings:
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "efccbf380499240ee40eea5e7cb4d687")
+    DATABASE_URL: str = "sqlite+aiosqlite:///./database.db"
 
-    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
-
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+    SECRET_KEY: str = "efccbf380499240ee40eea5e7cb4d687"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10
 
 settings = Settings()

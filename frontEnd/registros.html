@@ -1,81 +1,84 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Visitas</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Registros de Acceso</title>
+    <!-- Tu archivo CSS principal -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Enlace a Phosphor Icons para los iconos de acción (AHORA EN HEAD CON SRC CORRECTO) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phosphor-icons/1.4.1/phosphor.min.js"></script>
 </head>
+
 <body>
-  <nav class="navbar">
-    <img class="logo-Nav" src="assets/NexusAccessLogo.png" width="100" alt="Logo">
-    <h1>Registro de Visitas</h1>
-    <ul class="nav-links">
-      <li><a href="registros.html">Registro de visitas</a></li>
-      <li><a href="#">Visitas</a></li>
-      <li><a href="#">Cerrar sesión</a></li>
-    </ul>
-  </nav>
+    <header>
+        <nav class="navbar">
+            <!-- Asegúrate de que la ruta de tu logo sea correcta -->
+            <img class="logo-Nav" src="assets/NexusAccessLogo.png" width="100" alt="Logo">
+            <h1>Historial de Visitas</h1>
+            <ul class="nav-links">
+                <li><a href="index.html">Registrar visita</a></li>
+                <li><a href="registros.html" class="active">Historial de visitas</a></li>
+                <!-- Clase 'active' para indicar la página actual -->
+                <!-- Botón de Cerrar Sesión: Cambiado a <button> para consistencia con JS -->
+                <li><button id="logoutButton" class="btn">Cerrar sesión</button></li>
+            </ul>
+        </nav>
+    </header>
 
-  <main class="main-container">
-    <section class="filtros">
-      <label><input type="date"></label>
-      <button class="btn">Buscar por fecha
-    </section>
-    
-    <section class="porDocumento">
-      <label><input type="search"></label>
-      <button class="btn">Buscar
-    </section>
+    <main class="main-container">
+        <section class="filter-section">
+            <div class="filter-group">
+                <label for="fechaFilter">Filtrar por Fecha:</label>
+                <input type="date" id="fechaFilter" class="form-control">
+                <button id="searchDateBtn" class="btn btn-filter">Buscar por Fecha</button>
+            </div>
+            <div class="filter-group">
+                <label for="documentoFilter">Filtrar por Documento:</label> <!-- ID del label cambiado -->
+                <input type="text" id="documentoFilter" placeholder="Ingrese Nro. Documento"> <!-- ID del input cambiado -->
+                <button id="searchDocumentBtn" class="btn btn-filter">Buscar por Documento</button> <!-- ID del botón cambiado -->
+            </div>
+            <button id="clearFiltersBtn" class="btn btn-clear-filters">Limpiar Filtros</button>
+        </section>
 
-    <section class="tabla">
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Visitante</th>
-            <th>Tipo de Documento</th>
-            <th>Documento</th>
-            <th>Sede</th>
-            <th>Responsable</th>
-            <th>Hora Ing.</th>
-            <th>Hora Sal.</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>06-06-2025</td>
-            <td>María Pérez</td>
-            <td>12345678</td>
-            <td>IBM</td>
-            <td>Antonio</td>
-            <td>08:30</td>
-            <td><button class="btn-salida">Marcar Salida</button></td>
-            <td>
-              <button class="btn-ver">👁️</button>
-              <button class="btn-eliminar">❌</button>
-            </td>
-          </tr>
-        </tbody>
-        <tbody>
-          <tr>
-            <td>06-06-2025</td>
-            <td>María Pérez</td>
-            <td>12345678</td>
-            <td>IBM</td>
-            <td>Antonio</td>
-            <td>08:30</td>
-            <td><button class="btn-salida">Marcar Salida</button></td>
-            <td>
-              <button class="btn-ver">👁️</button>
-              <button class="btn-eliminar">❌</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-  </main>
+        <section class="records-section">
+            <h2>Historial de Registros</h2>
+            <div id="statusMessage" class="status-message"></div> <!-- ID para el div de mensajes de estado -->
+            <div class="records-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha Entrada</th>
+                            <th>Visitante</th>
+                            <th>Tipo Doc.</th>
+                            <th>Nro. Documento</th>
+                            <th>Sede</th>
+                            <th>responsable</th>
+                            <th>Hora Entrada</th>
+                            <th>Hora Salida</th>
+                            <th>Motivo</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody">
+                        <!-- Las filas de la tabla se llenarán con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Sistema de Control de Acceso</p>
+        </div>
+    </footer>
+
+    <!-- Tu archivo JavaScript principal para la lógica de registros -->
+    <script src="js/registros.js"></script>
+
 </body>
-</html>
 
+</html>
