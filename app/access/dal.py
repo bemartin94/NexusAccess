@@ -1,4 +1,3 @@
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
@@ -111,12 +110,12 @@ class AccessDAL:
 
 
     async def get_access_records(
-    self,
-    date_filter: Optional[date] = None,
-    id_card_filter: Optional[str] = None,
-    venue_id: Optional[int] = None,
-    skip: int = 0,
-    limit: int = 100
+        self,
+        date_filter: Optional[date] = None,
+        id_card_filter: Optional[str] = None,
+        venue_id: Optional[int] = None,
+        skip: int = 0,
+        limit: int = 100
     ) -> List[AccessResponse]:
         """
         Obtiene una lista de registros de acceso con filtros y paginación.
@@ -178,4 +177,3 @@ class AccessDAL:
             pass
 
         return access_db
-
