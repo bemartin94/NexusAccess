@@ -20,7 +20,8 @@ class User(Base):
     phone = Column(String, nullable=True)
     email = Column(String, unique=True, index=True)
     venue_id = Column(Integer, ForeignKey("venues.id"), nullable=True) #agregue nullable=True
-
+    #role_id = Column(Integer, ForeignKey("roles.id"), nullable=True) # Agregue nullable=True para permitir usuarios sin sede asignada
+    
     roles = relationship("Role", secondary=user_roles, back_populates="users")
     venue = relationship("Venue", back_populates="users")
 

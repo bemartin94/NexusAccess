@@ -46,7 +46,7 @@ async def get_db():
         yield session
 
 # --- Dependencia para obtener el usuario actual a partir del token ---
-async def get_current_user(
+async def get_current_active_user(
     db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)
 ) -> User:
     credentials_exception = HTTPException(
@@ -94,7 +94,8 @@ async def get_current_user(
 
 # --- Dependencia para verificar roles ---
 def has_role(required_roles: List[str]):
-    def role_checker(current_user: User = Depends(get_current_user)):
+    # Ensure current_user is obtained using the correct dependency function
+    def role_checker(current_user: User = Depends(get_current_active_user)):
         # Si no se requieren roles, cualquier usuario autenticado pasa
         if not required_roles:
             return current_user

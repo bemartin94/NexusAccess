@@ -19,7 +19,7 @@ from app.visitors.dal import VisitorDAL
 from app.access.schemas import AccessCreate, AccessResponse # Usado en la lógica, pero no como request body principal aquí
 
 # Importar seguridad y el esquema User para obtener el usuario actual
-from app.auth.security import get_current_user
+from app.auth.security import get_current_active_user
 from app.users.schemas import UserResponse # Asumo que tienes un UserResponse schema para el usuario autenticado
 
 # Inicializa el APIRouter
@@ -36,7 +36,7 @@ async def get_db():
 async def register_complete_visit(
     visit_request: VisitCreateRequest, # Utiliza el esquema combinado que creamos
     db: AsyncSession = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_user) # Requiere autenticación
+    current_user: UserResponse = Depends(get_current_active_user) # Requiere autenticación
 ):
     # Validaciones de seguridad: asegurar que el usuario autenticado tiene permisos
     # para registrar en la sede y como supervisor especificados.
@@ -140,7 +140,7 @@ async def register_complete_visit(
 async def read_visitor(
     visitor_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_active_user)
 ):
     visitor = await VisitorDAL(db).get_by_id(visitor_id)
     if not visitor:
@@ -152,7 +152,7 @@ async def update_visitor(
     visitor_id: int,
     visitor_in: VisitorUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_active_user)
 ):
     visitor = await VisitorDAL(db).get_by_id(visitor_id)
     if not visitor:
@@ -167,7 +167,7 @@ async def update_visitor(
 async def delete_visitor(
     visitor_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_user)
+    current_user: UserResponse = Depends(get_current_active_user)
 ):
     dal = VisitorDAL(db)
     deleted = await dal.delete(visitor_id)

@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 from core.database import AsyncSessionLocal
 from core.models import User, Role # <<< CAMBIO IMPORTANTE: Asegúrate de importar Role >>>
 from app.auth import schemas, security
-from app.auth.security import get_db, get_current_user # <<< CAMBIO IMPORTANTE: Asegúrate de importar get_current_user >>>
+from app.auth.security import get_db, get_current_active_user # <<< CAMBIO IMPORTANTE: Asegúrate de importar get_current_user >>>
 
 router = APIRouter(tags=["Auth"]) # <<< CAMBIO IMPORTANTE: Cambiado el tag a "Auth" para coherencia >>>
 
@@ -131,7 +131,7 @@ async def register_user(
 # Endpoint de ejemplo para probar la autenticación y roles
 # <<< CAMBIO IMPORTANTE: Nuevo endpoint para obtener información del usuario actual >>>
 @router.get("/me", response_model=schemas.UserResponse)
-async def read_users_me(current_user: Annotated[User, Depends(security.get_current_user)]):
+async def read_users_me(current_user: Annotated[User, Depends(security.get_current_active_user)]):
     """
     Obtiene la información del usuario actual autenticado.
     Requiere que el usuario esté autenticado con un token válido.
