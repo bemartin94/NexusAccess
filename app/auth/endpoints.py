@@ -1,6 +1,6 @@
 # app/auth/endpoints.py
 from datetime import timedelta
-from typing import Annotated, List # <<< CAMBIO IMPORTANTE: Agregado Annotated y List >>>
+from typing import Annotated, List 
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -8,26 +8,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select 
 from sqlalchemy.orm import selectinload 
 
-from core.database import AsyncSessionLocal
-from core.models import User, Role # <<< CAMBIO IMPORTANTE: Asegúrate de importar Role >>>
-from app.auth import schemas, security
-from app.auth.security import get_db, get_current_active_user # <<< CAMBIO IMPORTANTE: Asegúrate de importar get_current_user >>>
+from core.database import get_db # <<< CAMBIO AQUÍ: Importa get_db desde core.database >>>
+from core.models import User, Role 
+from app.auth import schemas, security # Importa el módulo de seguridad
 
-router = APIRouter(tags=["Auth"]) # <<< CAMBIO IMPORTANTE: Cambiado el tag a "Auth" para coherencia >>>
+router = APIRouter(tags=["Auth"])
 
-# Dependencia para obtener la sesión de la base de datos (ya estaba, pero confirmamos)
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
+# Eliminada la definición duplicada de get_db() aquí.
 
 # Endpoint para obtener el token de acceso (login)
 @router.post("/token", response_model=schemas.Token)
 async def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()], # <<< CAMBIO IMPORTANTE: Agregado Annotated >>>
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()], 
     db: AsyncSession = Depends(get_db)
 ):
     # Cargamos el usuario incluyendo sus roles y sede para el token
-    # <<< CAMBIO IMPORTANTE: selectinload para cargar roles y venue >>>
     result = await db.execute(
         select(User)
         .options(selectinload(User.roles), selectinload(User.venue))
@@ -45,23 +40,20 @@ async def login_for_access_token(
     # Preparamos los datos para el token incluyendo roles y venue_id
     access_token_expires = timedelta(minutes=security.settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    # Obtener los nombres de los roles del usuario
-    user_role_names = user.role_names # <<< CAMBIO IMPORTANTE: Obtiene nombres de roles >>>
+    # Obtener los nombres de los roles del usuario (usa la propiedad role_names del modelo User)
+    user_role_names = user.role_names 
     
     # Obtener el ID de la sede del usuario (si existe)
-    user_venue_id = user.venue_id # <<< CAMBIO IMPORTANTE: Obtiene ID de la sede >>>
+    user_venue_id = user.venue_id 
 
+    # Crear el token de acceso usando el ID, email, roles y venue_id
     access_token = security.create_access_token(
-        data={
-            "sub": user.email, # 'sub' es el estándar para el sujeto del token
-            "user_id": user.id, # <<< CAMBIO IMPORTANTE: Agregado user_id >>>
-            "user_email": user.email, # <<< CAMBIO IMPORTANTE: Agregado user_email >>>
-            "user_roles": user_role_names, # <<< CAMBIO IMPORTANTE: Agregado user_roles al payload del token >>>
-            "venue_id": user_venue_id # <<< CAMBIO IMPORTANTE: Agregado venue_id al payload del token >>>
-        },
+        # security.create_access_token ahora espera un objeto User completo
+        user=user, 
         expires_delta=access_token_expires
     )
-    # <<< CAMBIO IMPORTANTE: La respuesta del token ahora incluye user_id, user_email, user_roles y venue_id >>>
+    
+    # La respuesta del token ahora incluye user_id, user_email, user_roles y venue_id
     return schemas.Token(
         access_token=access_token,
         token_type="bearer",
@@ -71,13 +63,12 @@ async def login_for_access_token(
         venue_id=user_venue_id
     )
 
-# Endpoint para crear un nuevo usuario
+# Endpoint para crear un nuevo usuario (solo para System Administrator)
 @router.post("/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(
     user_create: schemas.UserCreate,
     db: AsyncSession = Depends(get_db),
-    # <<< CAMBIO IMPORTANTE: Requiere System Administrator para crear usuarios >>>
-    current_user: User = Depends(security.has_role(security.SYSTEM_ADMINISTRATOR)) 
+    current_user: User = Depends(security.has_role(security.SYSTEM_ADMINISTRATOR)) # Requiere System Administrator
 ):
     # Verificar si el usuario ya existe
     result = await db.execute(select(User).filter(User.email == user_create.email))
@@ -101,9 +92,8 @@ async def register_user(
     await db.commit()
     await db.refresh(new_user)
 
-    # <<< CAMBIO IMPORTANTE: Asignar roles al nuevo usuario si se proporcionaron role_ids >>>
+    # Asignar roles al nuevo usuario si se proporcionaron role_ids
     if user_create.role_ids:
-        # Obtener los objetos Role correspondientes a los IDs
         roles_result = await db.execute(select(Role).filter(Role.id.in_(user_create.role_ids)))
         roles = roles_result.scalars().all()
         
@@ -117,37 +107,20 @@ async def register_user(
         await db.refresh(new_user) # Refrescar para cargar los roles asignados
 
     # Devolver UserResponse con los nombres de los roles
-    # <<< CAMBIO IMPORTANTE: Incluye roles en la respuesta del nuevo usuario >>>
-    return schemas.UserResponse(
-        id=new_user.id,
-        email=new_user.email,
-        name=new_user.name,
-        last_name=new_user.last_name,
-        phone=new_user.phone,
-        venue_id=new_user.venue_id,
-        roles=new_user.role_names # Usamos la propiedad role_names del modelo User
-    )
+    return schemas.UserResponse.model_validate(new_user) # Usa model_validate para el objeto User
 
-# Endpoint de ejemplo para probar la autenticación y roles
-# <<< CAMBIO IMPORTANTE: Nuevo endpoint para obtener información del usuario actual >>>
+
+# Endpoint de ejemplo para obtener información del usuario actual
 @router.get("/me", response_model=schemas.UserResponse)
 async def read_users_me(current_user: Annotated[User, Depends(security.get_current_active_user)]):
     """
     Obtiene la información del usuario actual autenticado.
     Requiere que el usuario esté autenticado con un token válido.
     """
-    return schemas.UserResponse(
-        id=current_user.id,
-        email=current_user.email,
-        name=current_user.name,
-        last_name=current_user.last_name,
-        phone=current_user.phone,
-        venue_id=current_user.venue_id,
-        roles=current_user.role_names # Incluimos los roles del usuario
-    )
+    return schemas.UserResponse.model_validate(current_user)
+
 
 # Endpoint de ejemplo que requiere el rol "System Administrator"
-# <<< CAMBIO IMPORTANTE: Nuevo endpoint con autorización por rol >>>
 @router.get("/admin-only", response_model=dict)
 async def admin_only_endpoint(
     current_user: Annotated[User, Depends(security.has_role(security.SYSTEM_ADMINISTRATOR))]
@@ -158,7 +131,6 @@ async def admin_only_endpoint(
     return {"message": f"Bienvenido, Administrador de Sistema {current_user.email}!"}
 
 # Endpoint de ejemplo que requiere el rol "Venue Supervisor"
-# <<< CAMBIO IMPORTANTE: Nuevo endpoint con autorización por rol >>>
 @router.get("/supervisor-only", response_model=dict)
 async def supervisor_only_endpoint(
     current_user: Annotated[User, Depends(security.has_role(security.VENUE_SUPERVISOR))]
@@ -169,7 +141,6 @@ async def supervisor_only_endpoint(
     return {"message": f"Bienvenido, Supervisor de Sede {current_user.email} en la sede {current_user.venue.name if current_user.venue else 'N/A'}!"}
 
 # Endpoint de ejemplo que requiere el rol "Guest User"
-# <<< CAMBIO IMPORTANTE: Nuevo endpoint con autorización por rol >>>
 @router.get("/guest-only", response_model=dict)
 async def guest_only_endpoint(
     current_user: Annotated[User, Depends(security.has_role(security.GUEST_USER))]
@@ -180,7 +151,6 @@ async def guest_only_endpoint(
     return {"message": f"Bienvenido, Usuario Invitado {current_user.email}!"}
 
 # Endpoint para listar todos los usuarios (solo para System Administrator)
-# <<< CAMBIO IMPORTANTE: Nuevo endpoint para listar usuarios, restringido por rol >>>
 @router.get("/users", response_model=List[schemas.UserResponse])
 async def list_users(
     db: AsyncSession = Depends(get_db),
@@ -190,14 +160,6 @@ async def list_users(
     result = await db.execute(select(User).options(selectinload(User.roles)))
     users = result.scalars().all()
     # Mapeamos los usuarios a nuestro esquema de respuesta
-    return [
-        schemas.UserResponse(
-            id=user.id,
-            email=user.email,
-            name=user.name,
-            last_name=user.last_name,
-            phone=user.phone,
-            venue_id=user.venue_id,
-            roles=user.role_names
-        ) for user in users
-    ]
+    # Usamos model_validate para el mapeo automático de propiedades computadas como 'roles'
+    return [schemas.UserResponse.model_validate(user) for user in users]
+ 
