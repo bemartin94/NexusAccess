@@ -1,3 +1,5 @@
+// frontEnd/js/registros.js
+
 document.addEventListener('DOMContentLoaded', async () => {
     const accessToken = localStorage.getItem('access_token');
     if (!accessToken) {
@@ -92,7 +94,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- Renderizado de la Tabla ---
     function displayAccessRecords(records) {
         recordsTableBody.innerHTML = '';
         if (records.length === 0) {
@@ -103,46 +104,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         records.forEach(record => {
             const row = recordsTableBody.insertRow();
             
-            // Formato de fecha y hora para mostrar
-            // entry_date es la fecha y hora completa de entrada. De ahí sacamos fecha y hora.
-            // exit_date es la fecha y hora completa de salida. De ahí sacamos solo la hora.
             const entryDateOnly = formatDate(record.entry_date); 
             const entryTimeOnly = formatTime(record.entry_date); 
             const exitTimeOnly = formatTime(record.exit_date);
             
-            // HEADERS (Columna Index) -> Propiedad JSON
-            // 0: Fecha Entrada    -> record.entry_date (solo fecha)
-            // 1: Visitante        -> record.visitor_name
-            // 2: Tipo Doc.        -> record.id_card_type_name
-            // 3: Nro. Documento   -> record.visitor_id_card
-            // 4: Sede             -> record.venue_name
-            // 5: Responsable      -> record.supervisor_name
-            // 6: Hora Entrada     -> record.entry_date (solo hora)
-            // 7: Hora Salida      -> record.exit_date (solo hora, o PENDIENTE)
-            // 8: Motivo           -> record.access_reason
-            // 9: Acciones         -> Botones
-
-            row.insertCell(0).textContent = entryDateOnly; // FECHA ENTRADA
-            row.insertCell(1).textContent = record.visitor_name || 'N/A'; // VISITANTE
-            row.insertCell(2).textContent = record.id_card_type_name || 'N/A'; // TIPO DOC.
-            row.insertCell(3).textContent = record.visitor_id_card || 'N/A'; // NRO. DOCUMENTO
-            row.insertCell(4).textContent = record.venue_name || 'N/A'; // SEDE
-            row.insertCell(5).textContent = record.supervisor_name || 'N/A'; // RESPONSABLE
-            row.insertCell(6).textContent = entryTimeOnly; // HORA ENTRADA
+            row.insertCell(0).textContent = entryDateOnly;
+            row.insertCell(1).textContent = record.visitor_name || 'N/A';
+            row.insertCell(2).textContent = record.id_card_type_name || 'N/A';
+            row.insertCell(3).textContent = record.visitor_id_card || 'N/A';
+            row.insertCell(4).textContent = record.venue_name || 'N/A';
+            row.insertCell(5).textContent = record.supervisor_name || 'N/A';
+            row.insertCell(6).textContent = entryTimeOnly;
             
-            const exitCell = row.insertCell(7); // HORA SALIDA
+            const exitCell = row.insertCell(7);
             if (record.exit_date === null) {
                 exitCell.innerHTML = '<span class="pending">PENDIENTE</span>';
             } else {
                 exitCell.textContent = exitTimeOnly;
             }
             
-            row.insertCell(8).textContent = record.access_reason || 'N/A'; // MOTIVO
+            row.insertCell(8).textContent = record.access_reason || 'N/A';
 
             // Columna de Acciones
             const actionsCell = row.insertCell(9);
-            actionsCell.classList.add('action-buttons');
+            actionsCell.classList.add('action-buttons'); 
 
+            // Botón "Marcar Salida" (solo si exit_date es null)
             if (record.exit_date === null) {
                 const markExitBtn = document.createElement('button');
                 markExitBtn.textContent = 'Marcar Salida';
@@ -151,26 +138,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                 actionsCell.appendChild(markExitBtn);
             }
 
+            // Botón "Ver" con Google Material Icon
             const viewBtn = document.createElement('button');
-            viewBtn.innerHTML = '<ph-eye-bold></ph-eye-bold>';
-            viewBtn.classList.add('btn', 'btn-ver');
+            viewBtn.innerHTML = '<i class="material-icons">visibility</i>'; // Nombre de icono de Google
+            viewBtn.classList.add('btn', 'btn-icon', 'btn-ver'); // Clases para el estilo
             viewBtn.title = 'Ver Detalles';
             viewBtn.addEventListener('click', () => viewRecord(record.id));
             actionsCell.appendChild(viewBtn);
 
+            // Botón "Editar" con Google Material Icon
             const editBtn = document.createElement('button');
-            editBtn.innerHTML = '<ph-pencil-simple-bold></ph-pencil-simple-bold>';
-            editBtn.classList.add('btn', 'btn-editar');
+            editBtn.innerHTML = '<i class="material-icons">edit</i>'; // Nombre de icono de Google
+            editBtn.classList.add('btn', 'btn-icon', 'btn-editar');
             editBtn.title = 'Editar Registro';
             editBtn.addEventListener('click', () => editRecord(record.id));
             actionsCell.appendChild(editBtn);
 
+            // Botón "Eliminar" con Google Material Icon
             const deleteBtn = document.createElement('button');
-            deleteBtn.innerHTML = '<ph-trash-bold></ph-trash-bold>';
-            deleteBtn.classList.add('btn', 'btn-eliminar');
+            deleteBtn.innerHTML = '<i class="material-icons">delete</i>'; // Nombre de icono de Google
+            deleteBtn.classList.add('btn', 'btn-icon', 'btn-eliminar');
             deleteBtn.title = 'Eliminar Registro';
             deleteBtn.addEventListener('click', () => confirmDeleteRecord(record.id));
             actionsCell.appendChild(deleteBtn);
+
+            // Botón "Actualizar" (refresh) con Google Material Icon
+            const refreshBtn = document.createElement('button');
+            refreshBtn.innerHTML = '<i class="material-icons">refresh</i>'; // Nombre de icono de Google
+            refreshBtn.classList.add('btn', 'btn-icon', 'btn-refresh');
+            refreshBtn.title = 'Actualizar Registro';
+            refreshBtn.addEventListener('click', () => loadAccessRecords(fechaFilterInput.value, documentoFilterInput.value));
+            actionsCell.appendChild(refreshBtn);
         });
     }
 

@@ -8,22 +8,24 @@
     <!-- Tu archivo CSS principal -->
     <link rel="stylesheet" href="styles.css">
 
-    <!-- Enlace a Phosphor Icons para los iconos de acción (AHORA EN HEAD CON SRC CORRECTO) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/phosphor-icons/1.4.1/phosphor.min.js"></script>
+    <!-- IMPORTACIÓN CRUCIAL: Google Material Icons -->
+    <!-- Esta línea carga la fuente de iconos. Debe estar en el <head> -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- NOTA: Hemos eliminado la importación de Phosphor Icons. -->
+    <!-- Si antes tenías: <script src="https://cdnjs.cloudflare.com/ajax/libs/phosphor-icons/1.4.1/phosphor.min.js"></script>
+         DEBE SER ELIMINADA para evitar conflictos. -->
 </head>
 
 <body>
     <header>
         <nav class="navbar">
-            <!-- Asegúrate de que la ruta de tu logo sea correcta -->
             <img class="logo-Nav" src="assets/NexusAccessLogo.png" width="100" alt="Logo">
-            <h1>Historial de Visitas</h1>
+            <h1>Historial de Visitas</h1> 
             <ul class="nav-links">
                 <li><a href="index.html">Registrar visita</a></li>
                 <li><a href="registros.html" class="active">Historial de visitas</a></li>
-                <!-- Clase 'active' para indicar la página actual -->
-                <!-- Botón de Cerrar Sesión: Cambiado a <button> para consistencia con JS -->
-                <li><button id="logoutButton" class="btn">Cerrar sesión</button></li>
+                <li><a href="#" id="logoutButton">Cerrar sesión</a></li>
             </ul>
         </nav>
     </header>
@@ -36,16 +38,16 @@
                 <button id="searchDateBtn" class="btn btn-filter">Buscar por Fecha</button>
             </div>
             <div class="filter-group">
-                <label for="documentoFilter">Filtrar por Documento:</label> <!-- ID del label cambiado -->
-                <input type="text" id="documentoFilter" placeholder="Ingrese Nro. Documento"> <!-- ID del input cambiado -->
-                <button id="searchDocumentBtn" class="btn btn-filter">Buscar por Documento</button> <!-- ID del botón cambiado -->
+                <label for="documentoFilter">Filtrar por Documento:</label>
+                <input type="text" id="documentoFilter" placeholder="Ingrese Nro. Documento">
+                <button id="searchDocumentBtn" class="btn btn-filter">Buscar por Documento</button>
             </div>
             <button id="clearFiltersBtn" class="btn btn-clear-filters">Limpiar Filtros</button>
         </section>
 
         <section class="records-section">
             <h2>Historial de Registros</h2>
-            <div id="statusMessage" class="status-message"></div> <!-- ID para el div de mensajes de estado -->
+            <div id="statusMessage" class="status-message"></div>
             <div class="records-table-container">
                 <table>
                     <thead>
@@ -55,7 +57,7 @@
                             <th>Tipo Doc.</th>
                             <th>Nro. Documento</th>
                             <th>Sede</th>
-                            <th>responsable</th>
+                            <th>Responsable</th>
                             <th>Hora Entrada</th>
                             <th>Hora Salida</th>
                             <th>Motivo</th>
@@ -70,13 +72,12 @@
         </section>
     </main>
 
-    <footer>
-        <div class="container">
+    <!--<footer>
+       <div class="container">
             <p>&copy; 2024 Sistema de Control de Acceso</p>
         </div>
-    </footer>
+    </footer>-->
 
-    <!-- Tu archivo JavaScript principal para la lógica de registros -->
     <script src="js/registros.js"></script>
 
 </body>

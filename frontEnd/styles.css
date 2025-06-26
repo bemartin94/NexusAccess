@@ -1,4 +1,4 @@
-/* Reset */
+/* --- Globales y Reseteo --- */
 * {
   margin: 0;
   padding: 0;
@@ -6,7 +6,7 @@
 }
 
 body {
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Segoe UI', sans-serif; /* Mantiene tu fuente actual */
   color: #333;
   background-image: linear-gradient(to top, #dfe9f3 0%, white 100%);
   min-height: 100vh;
@@ -333,66 +333,93 @@ td span.pending {
 /* Botones de Acción en la Tabla */
 .action-buttons {
     display: flex;
-    gap: 8px;
+    gap: 8px; /* Espacio entre los botones de acción */
     flex-wrap: nowrap;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center; /* Centrar los botones en la celda */
 }
 
-.btn-salida, .btn-ver, .btn-editar, .btn-eliminar {
-    color: rgb(208, 17, 17);
+/* Estilos base para todos los botones de acción (incluido Marcar Salida y los de icono) */
+/* Unifico la clase base para todos los botones en la tabla */
+.action-buttons .btn { /* Apunto a cualquier botón con la clase .btn dentro de .action-buttons */
+    color: rgb(255, 255, 255);
     border: none;
-    padding: 6px 12px;
+    padding: 8px 16px; /* Padding para botones con texto */
     border-radius: 6px;
     cursor: pointer;
     white-space: nowrap;
-    font-size: 0.85em;
+    font-size: 1em; /* Tamaño de fuente para el texto del botón (Marcar Salida) */
     font-weight: 600;
     transition: background-color 0.3s ease, transform 0.2s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    display: flex;
+    display: flex; /* Para centrar el contenido (icono o texto) */
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 4px; /* Espacio entre icono y texto si hubiera ambos */
 }
 
-.btn-salida { background-color: #28a745; }
-.btn-salida:hover { background-color: #218838; transform: translateY(-1px); }
+/* Colores de fondo de los botones */
+.action-buttons .btn-salida { background-color: #287b3b; }
+.action-buttons .btn-salida:hover { background-color: #218838; transform: translateY(-1px); }
 
-.btn-ver { background-color: #17a2b8; }
-.btn-ver:hover { background-color: #138496; transform: translateY(-1px); }
+/* Estilos específicos para botones con solo icono */
+.action-buttons .btn-icon { /* Apunto a cualquier botón con la clase .btn-icon dentro de .action-buttons */
+    padding: 8px; /* Padding más compacto para botones que solo contienen iconos */
+    width: 40px;  /* Ancho fijo para hacerlos cuadrados */
+    height: 40px; /* Altura fija para hacerlos cuadrados */
+    flex-shrink: 0; /* Evita que se encojan en layouts flex */
+}
 
-.btn-editar {
+/* Colores para los botones con icono */
+.action-buttons .btn-icon.btn-ver { background-color: #17a2b8; }
+.action-buttons .btn-icon.btn-ver:hover { background-color: #138496; transform: translateY(-1px); }
+
+.action-buttons .btn-icon.btn-editar {
     background-color: #ffc107;
-    color: #333;
+    color: #333; /* Texto oscuro para contraste en fondo amarillo */
 }
-.btn-editar:hover { background-color: #e0a800; transform: translateY(-1px); }
+.action-buttons .btn-icon.btn-editar:hover { background-color: #e0a800; transform: translateY(-1px); }
 
-.btn-eliminar { background-color: #dc3545; }
-.btn-eliminar:hover { background-color: #c82333; transform: translateY(-1px); }
+.action-buttons .btn-icon.btn-eliminar { background-color: #dc3545; }
+.action-buttons .btn-icon.btn-eliminar:hover { background-color: #c82333; transform: translateY(-1px); }
 
-.action-buttons button ph-icon {
-    font-size: 1.1em;
+.action-buttons .btn-icon.btn-refresh { /* Nuevo botón de Actualizar */
+    background-color: #6c757d; /* Gris */
+}
+.action-buttons .btn-icon.btn-refresh:hover { background-color: #5a6268; transform: translateY(-1px); }
+
+
+/* --- ESTILO PARA LOS ICONOS DE GOOGLE MATERIAL ICONS --- */
+/* Esta regla es CRUCIAL para que los iconos se muestren correctamente */
+.material-icons {
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;  /* Tamaño del icono. Ajusta si es necesario */
+    display: inline-block;
     line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'liga';
+    color: currentColor; /* Asegura que el icono herede el color del texto del botón */
 }
 
-/* Mensajes de Estado */
-.status-message {
-    margin-top: 20px;
-    padding: 15px;
-    border-radius: 8px;
+
+/* --- Footer --- */
+footer {
+    background-color: #374b5f;
+    color: white;
     text-align: center;
-    font-weight: bold;
-    font-size: 1.1em;
-    opacity: 0;
-    transition: opacity 0.5s ease;
+    padding: 45px 0;
+    margin-top: 30px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
 }
-
-.status-message.show { opacity: 1; }
-.status-message.success { background-color: #e0ffe0; color: #28a745; border: 1px solid #c0e0c0; }
-.status-message.error { background-color: #ffe0e0; color: #dc3545; border: 1px solid #e0c0e0; }
-.status-message.info { background-color: #e0f2f7; color: #17a2b8; border: 1px solid #c0e0c0; }
-
 
 /* --- Media Queries para Responsividad --- */
 @media (max-width: 768px) {
@@ -454,9 +481,14 @@ td span.pending {
         gap: 5px;
     }
 
-    .btn-salida, .btn-ver, .btn-editar, .btn-eliminar {
-        padding: 5px 8px;
-        font-size: 0.8em;
+    .action-buttons .btn-icon { /* Apunto a .btn-icon dentro de .action-buttons */
+        width: 36px; /* Ajusta el tamaño de los iconos en móvil si es necesario */
+        height: 36px;
+        padding: 6px;
+    }
+
+    .material-icons {
+        font-size: 20px; /* Ajusta el tamaño de los iconos de Google en móvil */
     }
 }
 
