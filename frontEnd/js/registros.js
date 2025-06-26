@@ -1,15 +1,10 @@
-// frontEnd/js/registros.js
-
 document.addEventListener('DOMContentLoaded', async () => {
-    // Verificar autenticación al cargar la página
     const accessToken = localStorage.getItem('access_token');
     if (!accessToken) {
-        // Redirigir a la página de login si no hay token
         window.location.href = 'login.html';
-        return; // Detener la ejecución del script
+        return;
     }
 
-    // Inicializar el botón de logout
     const logoutButton = document.getElementById('logoutButton');
     if (logoutButton) {
         logoutButton.addEventListener('click', async () => {
@@ -18,9 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    const API_BASE_URL = 'http://127.0.0.1:8000/app/v1'; // Ajusta si tu API tiene otra URL base
+    const API_BASE_URL = 'http://127.0.0.1:8000/app/v1';
 
-    // Elementos del DOM
     const fechaFilterInput = document.getElementById('fechaFilter');
     const documentoFilterInput = document.getElementById('documentoFilter');
     const searchDateBtn = document.getElementById('searchDateBtn');
@@ -29,7 +23,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const recordsTableBody = document.getElementById('recordsTableBody');
     const statusMessageDiv = document.getElementById('statusMessage');
 
-    // --- Funciones de Utilidad ---
     function showStatusMessage(message, type) {
         statusMessageDiv.textContent = message;
         statusMessageDiv.className = `status-message show ${type}`;
@@ -41,9 +34,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function formatDate(isoString) {
         if (!isoString) return 'N/A';
         const date = new Date(isoString);
-        // Formato DD/MM/YYYY
         const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // Meses son 0-11
+        const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
         return `${day}/${month}/${year}`;
     }
@@ -51,13 +43,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function formatTime(isoString) {
         if (!isoString) return 'N/A';
         const date = new Date(isoString);
-        // Formato HH:MM
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
         return `${hours}:${minutes}`;
     }
 
-    // --- Carga de Registros de Acceso ---
     async function loadAccessRecords(dateFilter = null, idCardFilter = null) {
         recordsTableBody.innerHTML = '<tr><td colspan="10" class="text-center">Cargando registros...</td></tr>';
         
@@ -85,7 +75,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (!response.ok) {
-                // Si la respuesta no es OK, intenta leer el error del backend
                 const errorData = await response.json();
                 console.error('Error al cargar registros:', errorData.detail || errorData.message || response.statusText);
                 showStatusMessage(`Error al cargar registros: ${errorData.detail || response.statusText || 'Verifica la consola.'}`, 'error');
@@ -105,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Renderizado de la Tabla ---
     function displayAccessRecords(records) {
-        recordsTableBody.innerHTML = ''; // Limpiar tabla antes de añadir nuevos datos
+        recordsTableBody.innerHTML = '';
         if (records.length === 0) {
             recordsTableBody.innerHTML = '<tr><td colspan="10" class="text-center">No hay registros para mostrar con los filtros actuales.</td></tr>';
             return;
@@ -115,33 +104,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             const row = recordsTableBody.insertRow();
             
             // Formato de fecha y hora para mostrar
-            const entryDateFormatted = formatDate(record.entry_date);
-            const entryTimeFormatted = formatTime(record.entry_date);
-            const exitTimeFormatted = formatTime(record.exit_date);
+            // entry_date es la fecha y hora completa de entrada. De ahí sacamos fecha y hora.
+            // exit_date es la fecha y hora completa de salida. De ahí sacamos solo la hora.
+            const entryDateOnly = formatDate(record.entry_date); 
+            const entryTimeOnly = formatTime(record.entry_date); 
+            const exitTimeOnly = formatTime(record.exit_date);
             
-            // Campos de la tabla
-            row.insertCell(0).textContent = entryDateFormatted;
-            row.insertCell(1).textContent = entryTimeFormatted;
-            // Estado "PENDIENTE" si no hay hora de salida
-            const exitCell = row.insertCell(2);
+            // HEADERS (Columna Index) -> Propiedad JSON
+            // 0: Fecha Entrada    -> record.entry_date (solo fecha)
+            // 1: Visitante        -> record.visitor_name
+            // 2: Tipo Doc.        -> record.id_card_type_name
+            // 3: Nro. Documento   -> record.visitor_id_card
+            // 4: Sede             -> record.venue_name
+            // 5: Responsable      -> record.supervisor_name
+            // 6: Hora Entrada     -> record.entry_date (solo hora)
+            // 7: Hora Salida      -> record.exit_date (solo hora, o PENDIENTE)
+            // 8: Motivo           -> record.access_reason
+            // 9: Acciones         -> Botones
+
+            row.insertCell(0).textContent = entryDateOnly; // FECHA ENTRADA
+            row.insertCell(1).textContent = record.visitor_name || 'N/A'; // VISITANTE
+            row.insertCell(2).textContent = record.id_card_type_name || 'N/A'; // TIPO DOC.
+            row.insertCell(3).textContent = record.visitor_id_card || 'N/A'; // NRO. DOCUMENTO
+            row.insertCell(4).textContent = record.venue_name || 'N/A'; // SEDE
+            row.insertCell(5).textContent = record.supervisor_name || 'N/A'; // RESPONSABLE
+            row.insertCell(6).textContent = entryTimeOnly; // HORA ENTRADA
+            
+            const exitCell = row.insertCell(7); // HORA SALIDA
             if (record.exit_date === null) {
                 exitCell.innerHTML = '<span class="pending">PENDIENTE</span>';
             } else {
-                exitCell.textContent = exitTimeFormatted;
+                exitCell.textContent = exitTimeOnly;
             }
             
-            row.insertCell(3).textContent = record.visitor_name || 'N/A';
-            row.insertCell(4).textContent = record.visitor_id_card || 'N/A';
-            row.insertCell(5).textContent = record.id_card_type_name || 'N/A';
-            row.insertCell(6).textContent = record.venue_name || 'N/A';
-            row.insertCell(7).textContent = record.supervisor_name || 'N/A';
-            row.insertCell(8).textContent = record.access_reason || 'N/A';
+            row.insertCell(8).textContent = record.access_reason || 'N/A'; // MOTIVO
 
             // Columna de Acciones
             const actionsCell = row.insertCell(9);
-            actionsCell.classList.add('action-buttons'); // Clase para espaciado de botones
+            actionsCell.classList.add('action-buttons');
 
-            // Botón "Marcar Salida" (solo si exit_date es null)
             if (record.exit_date === null) {
                 const markExitBtn = document.createElement('button');
                 markExitBtn.textContent = 'Marcar Salida';
@@ -150,25 +151,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 actionsCell.appendChild(markExitBtn);
             }
 
-            // Botón "Ver"
             const viewBtn = document.createElement('button');
-            viewBtn.innerHTML = '<ph-eye-bold></ph-eye-bold>'; // Icono de ojo de Phosphor
+            viewBtn.innerHTML = '<ph-eye-bold></ph-eye-bold>';
             viewBtn.classList.add('btn', 'btn-ver');
             viewBtn.title = 'Ver Detalles';
             viewBtn.addEventListener('click', () => viewRecord(record.id));
             actionsCell.appendChild(viewBtn);
 
-            // Botón "Editar"
             const editBtn = document.createElement('button');
-            editBtn.innerHTML = '<ph-pencil-simple-bold></ph-pencil-simple-bold>'; // Icono de lápiz de Phosphor
+            editBtn.innerHTML = '<ph-pencil-simple-bold></ph-pencil-simple-bold>';
             editBtn.classList.add('btn', 'btn-editar');
             editBtn.title = 'Editar Registro';
             editBtn.addEventListener('click', () => editRecord(record.id));
             actionsCell.appendChild(editBtn);
 
-            // Botón "Eliminar"
             const deleteBtn = document.createElement('button');
-            deleteBtn.innerHTML = '<ph-trash-bold></ph-trash-bold>'; // Icono de cubo de basura de Phosphor
+            deleteBtn.innerHTML = '<ph-trash-bold></ph-trash-bold>';
             deleteBtn.classList.add('btn', 'btn-eliminar');
             deleteBtn.title = 'Eliminar Registro';
             deleteBtn.addEventListener('click', () => confirmDeleteRecord(record.id));
@@ -176,9 +174,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Funciones de Acción (Marcas de tiempo, ver, editar, eliminar) ---
-
-    // Función para Marcar Salida
     async function markExit(accessId) {
         showStatusMessage('Marcando salida...', 'info');
         try {
@@ -188,16 +183,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
                 },
-                body: JSON.stringify({ exit_date: new Date().toISOString() }) // Enviar la hora actual
+                body: JSON.stringify({ exit_date: new Date().toISOString() })
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('Error al marcar salida:', errorData.detail || errorData.message || response.statusText);
                 throw new Error(errorData.detail || 'Error al marcar salida');
             }
 
             showStatusMessage('Salida marcada exitosamente.', 'success');
-            // Recargar registros para reflejar el cambio
             await loadAccessRecords(fechaFilterInput.value, documentoFilterInput.value);
         } catch (error) {
             console.error('Error al marcar salida:', error);
@@ -205,30 +200,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Función para Ver Detalles (puedes implementarla como un modal o redirigir)
     async function viewRecord(accessId) {
         showStatusMessage(`Ver registro ${accessId}`, 'info');
-        // Implementa aquí la lógica para mostrar un modal con los detalles completos
-        // o redirigir a una página de detalles.
     }
 
-    // Función para Editar Registro (puedes implementarla como un modal o redirigir)
     async function editRecord(accessId) {
         showStatusMessage(`Editar registro ${accessId}`, 'info');
-        // Implementa aquí la lógica para un formulario de edición en un modal
-        // o redirigir a una página de edición con los datos del registro.
     }
 
-    // Función para Confirmar Eliminación (usar un modal personalizado, NO alert/confirm)
     async function confirmDeleteRecord(accessId) {
-        // En lugar de confirm(), usa un modal de confirmación HTML/CSS personalizado
-        // Por ahora, un mensaje simple para demostrar
         if (window.confirm(`¿Estás seguro de eliminar el registro ${accessId}?`)) {
             await deleteRecord(accessId);
         }
     }
 
-    // Función para Eliminar Registro
     async function deleteRecord(accessId) {
         showStatusMessage('Eliminando registro...', 'info');
         try {
@@ -239,9 +224,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            if (response.status === 204) { // 204 No Content para eliminación exitosa
+            if (response.status === 204) {
                 showStatusMessage('Registro eliminado exitosamente.', 'success');
-                // Recargar registros para reflejar el cambio
                 await loadAccessRecords(fechaFilterInput.value, documentoFilterInput.value);
             } else if (!response.ok) {
                 const errorData = await response.json();
@@ -256,18 +240,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- Inicialización y Event Listeners ---
-    // Establecer la fecha actual en el filtro al cargar
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     fechaFilterInput.value = `${year}-${month}-${day}`;
 
-    // Cargar los registros del día actual al inicio
     await loadAccessRecords(fechaFilterInput.value);
 
-    // Event Listeners para los botones de filtro
     searchDateBtn.addEventListener('click', () => {
         loadAccessRecords(fechaFilterInput.value, documentoFilterInput.value);
     });
@@ -277,12 +257,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     clearFiltersBtn.addEventListener('click', () => {
-        fechaFilterInput.value = ''; // Limpiar campo de fecha
-        documentoFilterInput.value = ''; // Limpiar campo de documento
-        loadAccessRecords(); // Cargar todos los registros sin filtros
+        fechaFilterInput.value = '';
+        documentoFilterInput.value = '';
+        loadAccessRecords();
     });
 
-    // Añadir listener para el Enter en los campos de filtro
     fechaFilterInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             loadAccessRecords(fechaFilterInput.value, documentoFilterInput.value);

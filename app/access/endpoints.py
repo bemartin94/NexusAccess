@@ -1,12 +1,9 @@
-# app/access/endpoints.py
-
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from datetime import date, datetime, time # Asegúrate de importar 'time'
 
-from core.database import get_db
-from app.auth.security import get_current_active_user
+from app.auth.security import get_current_active_user, get_db
 
 # --- Importaciones de esquemas y DALs ---
 from app.access.schemas import AccessResponse, AccessUpdate, AccessCreate, VisitCreateRequest
