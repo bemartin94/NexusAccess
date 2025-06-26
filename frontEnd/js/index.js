@@ -7,11 +7,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const userVenueId = localStorage.getItem('user_venue_id'); // ID de la sede del usuario
     const currentUserId = localStorage.getItem('user_id');     // ID del usuario autenticado
 
-    // =========================================================================
-    // *** Lógica para establecer Fecha y Hora Automáticamente ***
-    // Se ejecuta al principio para que los campos siempre estén pre-llenados y readonly
-    // Asegúrate de que los inputs de fecha y hora en tu HTML tengan el atributo 'readonly'
-    // =========================================================================
+    // --- VERIFICACIÓN DE AUTENTICACIÓN: Esta es la parte modificada ---
+    if (!accessToken) {
+        // Si no hay token de acceso, redirigir inmediatamente a la página de login
+        console.log("No access token found. Redirecting to login page.");
+        window.location.href = 'login.html';
+        return; // Detener la ejecución del script aquí para evitar que se cargue el formulario
+    } else {
+        // Si hay un token, el usuario está logueado, continuar con la inicialización del formulario
+        console.log("Access token found. User is logged in.");
+        const userInfoDiv = document.getElementById('user-info');
+        if (userInfoDiv) {
+            userInfoDiv.textContent = `Usuario ID: ${currentUserId || 'No disponible'}, Sede ID: ${userVenueId || 'No disponible'}`;
+        }
+
+        const sedeInput = document.getElementById('sede');
+        if (sedeInput && userVenueId) {
+            sedeInput.value = userVenueId;
+            sedeInput.disabled = true; // Deshabilita el campo
+            sedeInput.style.backgroundColor = '#e9e9e9'; // Cambia el color para indicar que está deshabilitado
+        }
+        
+        const supervisorIdInput = document.getElementById('supervisor_id');
+        if (supervisorIdInput && currentUserId) {
+            supervisorIdInput.value = currentUserId;
+            supervisorIdInput.disabled = true; // Deshabilita el campo
+            supervisorIdInput.style.backgroundColor = '#e9e9e9'; // Cambia el color para indicar que está deshabilitado
+        }
+    }
+    // --- FIN VERIFICACIÓN DE AUTENTICACIÓN ---
+
+
+    // --- Inicialización de fecha y hora actuales ---
     const fechaInput = document.getElementById('fecha');
     const horaIngInput = document.getElementById('hora_ing');
 
@@ -29,70 +56,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const minutes = String(now.getMinutes()).padStart(2, '0');
         horaIngInput.value = `${hours}:${minutes}`;
     }
-    // =========================================================================
-
-
-    // =========================================================================
-    // *** LÓGICA DE VERIFICACIÓN DE SESIÓN ***
-    // Si no hay accessToken, se asume que el usuario no ha iniciado sesión.
-    // =========================================================================
-    if (!accessToken) {
-        // --- PARA DEPURAR EL PROBLEMA DE LOGIN: COMENTA LAS SIGUIENTES 2 LÍNEAS ---
-        // alert('No ha iniciado sesión. Será redirigido a la página de login.'); 
-        // window.location.href = 'login.html'; 
-        // --- FIN DE LÍNEAS A COMENTAR PARA DEPURACIÓN ---
-
-        console.warn("DEBUG: No access token found. Redirection to login is temporarily disabled.");
-        const sessionStatusDiv = document.getElementById('sessionStatus');
-        if (sessionStatusDiv) {
-            sessionStatusDiv.textContent = "Sesión no activa (redirección deshabilitada para depuración).";
-            sessionStatusDiv.style.color = 'orange';
-        }
-        return; // Detiene la ejecución si no hay token (a menos que lo comentes para depurar el formulario sin login)
-    } else {
-        console.log("Access token found. User is logged in.");
-        const userInfoDiv = document.getElementById('user-info');
-        if (userInfoDiv) {
-            userInfoDiv.textContent = `Usuario ID: ${currentUserId || 'No disponible'}, Sede ID: ${userVenueId || 'No disponible'}`;
-        }
-
-        // =====================================================================
-        // --- Llenar campos de formulario (sede y supervisor_id) ---
-        // Se llenan si hay un token de acceso
-        // =====================================================================
-        const sedeInput = document.getElementById('sede');
-        if (sedeInput && userVenueId) {
-            sedeInput.value = userVenueId;
-            sedeInput.disabled = true; // Deshabilita el campo
-            sedeInput.style.backgroundColor = '#e9e9e9'; // Cambia el color para indicar que está deshabilitado
-        }
-        
-        const supervisorIdInput = document.getElementById('supervisor_id');
-        if (supervisorIdInput && currentUserId) {
-            supervisorIdInput.value = currentUserId;
-            supervisorIdInput.disabled = true; // Deshabilita el campo
-            supervisorIdInput.style.backgroundColor = '#e9e9e9'; // Cambia el color para indicar que está deshabilitado
-        }
-    }
-
 
     // =========================================================================
     // *** Lógica para el botón de cerrar sesión ***
-    // Asegúrate de tener un botón con id="logoutButton"
     // =========================================================================
     const logoutButton = document.getElementById('logoutButton');
     if (logoutButton) {
         logoutButton.addEventListener('click', (event) => {
             event.preventDefault();
-            localStorage.clear();
-            alert('Sesión cerrada correctamente.');
+            localStorage.clear(); // Limpia todos los datos de la sesión
+            // Eliminado el 'alert' para una transición más fluida
             window.location.href = 'login.html';
         });
     }
 
     // =========================================================================
     // *** LÓGICA DEL FORMULARIO DE REGISTRO DE VISITAS ***
-    // Asegúrate de que tu formulario tenga el ID "createVisitForm"
     // =========================================================================
     const createVisitForm = document.getElementById('createVisitForm');
     if (createVisitForm) {
@@ -136,7 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const token = localStorage.getItem('access_token');
             if (!token) {
-                alert('No hay token de autenticación. Por favor, inicie sesión.');
+                // Esta verificación es redundante si la primera ya redirigió
+                // Pero es una buena capa de seguridad si el token se pierde entre interacciones.
+                // Reemplazando alert con console.error y redirigiendo.
+                console.error('No hay token de autenticación. Redirigiendo a login.');
                 window.location.href = 'login.html'; 
                 return;
             }
