@@ -1,7 +1,7 @@
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from passlib.hash import bcrypt
+from passlib.hash import bcrypt # Asegúrate de que passlib esté instalado: pip install passlib
 from core.database import AsyncSessionLocal, engine, Base
 from core.models import Role, User
 
@@ -53,18 +53,16 @@ async def init_db():
                     name="System",
                     last_name="Admin",
                     phone="111222333",
-                    venue_id=None # Admins might not be tied to a specific venue
+                    venue_id=None, # Admins might not be tied to a specific venue
+                    role_id=admin_role.id # CAMBIO CLAVE AQUÍ: Asigna el ID del rol directamente
                 )
                 session.add(new_admin_user)
-                await session.flush() # Flush to get user ID before committing relationships
-
-                # Associate admin user with System Administrator role
-                # Usa session.run_sync para ejecutar esta operación potencialmente síncrona
-                await session.run_sync(lambda s: new_admin_user.roles.append(admin_role))
                 
                 print(f"Creating initial System Administrator: {admin_email}")
                 
-                await session.commit()
+                await session.commit() # Commit para guardar el usuario con su rol
+                # No es necesario flush() ni new_admin_user.roles.append()
+                # porque el role_id ya fue asignado.
             else:
                 print("System Administrator role not found, cannot create admin user.")
         else:

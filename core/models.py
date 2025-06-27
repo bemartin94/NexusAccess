@@ -1,15 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Table
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from .database import Base
-from typing import Optional, List # agregue List
-
-user_roles = Table(
-    "user_roles",
-    Base.metadata,
-    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
-    Column("role_id", Integer, ForeignKey("roles.id"), primary_key=True)
-)
-
+from typing import Optional, List
 
 class User(Base):
     __tablename__ = "users"
@@ -19,22 +11,16 @@ class User(Base):
     password = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     email = Column(String, unique=True, index=True)
-    venue_id = Column(Integer, ForeignKey("venues.id"), nullable=True) #agregue nullable=True
-    #role_id = Column(Integer, ForeignKey("roles.id"), nullable=True) # Agregue nullable=True para permitir usuarios sin sede asignada
+    venue_id = Column(Integer, ForeignKey("venues.id"), nullable=True)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=True) 
     
-    roles = relationship("Role", secondary=user_roles, back_populates="users")
+    role = relationship("Role", back_populates="users")
     venue = relationship("Venue", back_populates="users")
 
-    # ¡IMPORTANTE! La propiedad 'role_names' DEBE estar DENTRO de la clase User.
     @property
-    def role_names(self) -> List[str]:
-        """Retorna una lista de los nombres de los roles del usuario."""
-        # Se asegura de que la relación 'roles' esté cargada.
-        # SQLAlchemy ya maneja la carga perezosa aquí si no se usó selectinload.
-        # Iterar sobre self.roles ya provocará la carga si es necesario.
-        return [role.name for role in self.roles]                         
-
-
+    def role_name(self) -> Optional[str]:
+        return self.role.name if self.role else None
+                                
 class Venue(Base):
     __tablename__ = "venues"
     id = Column(Integer, primary_key=True, index=True)
@@ -50,16 +36,14 @@ class Venue(Base):
     users = relationship("User", back_populates="venue")
     supervisor = relationship("Supervisor", back_populates="venues")
     visitors = relationship("Visitor", back_populates="venue")
-    accesses = relationship("Access", back_populates="venue") #agregue esta relacion
+    accesses = relationship("Access", back_populates="venue")
     
-
 class Role(Base):
     __tablename__ = "roles"
-    id = Column(Integer, primary_key=True) # elimine index = True
-    name = Column(String,unique=True, nullable=False) #agregue unique
+    id = Column(Integer, primary_key=True)
+    name = Column(String,unique=True, nullable=False)
 
-    users = relationship("User", secondary=user_roles, back_populates="roles")
-
+    users = relationship("User", back_populates="role")
 
 class Supervisor(Base):
     __tablename__ = "supervisors"
@@ -71,7 +55,7 @@ class Supervisor(Base):
 
     venues = relationship("Venue", back_populates="supervisor")
     visitors = relationship("Visitor", back_populates="supervisor")
-    accesses = relationship("Access", back_populates="supervisor")#agregue esta relacion
+    accesses = relationship("Access", back_populates="supervisor")
 
 class IdCardType(Base):
     __tablename__ = "id_card_types"
@@ -97,8 +81,7 @@ class Visitor(Base):
     id_card_type = relationship("IdCardType", back_populates="visitors")
     supervisor = relationship("Supervisor", back_populates="visitors")
     venue = relationship("Venue", back_populates="visitors")
-    accesses = relationship("Access", back_populates="visitor") # agregue esta relacion
-
+    accesses = relationship("Access", back_populates="visitor")
 
 class AccessTime(Base):
     __tablename__ = "access_times"
@@ -109,9 +92,7 @@ class AccessTime(Base):
     access_id = Column(Integer, ForeignKey("accesses.id"))
     access = relationship("Access", back_populates="access_time")
 
-
 class Access(Base):
-
     __tablename__ = "accesses"
     id = Column(Integer, primary_key=True, index=True)
     venue_id = Column(Integer, ForeignKey("venues.id"))
@@ -126,8 +107,8 @@ class Access(Base):
 
     access_time = relationship("AccessTime", uselist=False, back_populates="access")
     id_card_type = relationship("IdCardType")
-    visitor = relationship("Visitor", back_populates="accesses") # ### CAMBIO AQUÍ: Agregado back_populates="accesses" ###
-    venue = relationship("Venue", back_populates="accesses")     # ### CAMBIO AQUÍ: Agregado back_populates="accesses" ###
+    visitor = relationship("Visitor", back_populates="accesses")
+    venue = relationship("Venue", back_populates="accesses")
     supervisor = relationship("Supervisor", back_populates="accesses")
 
     @property

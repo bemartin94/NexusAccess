@@ -1,4 +1,3 @@
-# app/auth/security.py
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from jose import JWTError, jwt
@@ -7,11 +6,11 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload # Aún se usa para cargar User.role y User.venue
 
 from core.config import settings
 from core.database import AsyncSessionLocal
-from core.models import User, Role
+from core.models import User, Role # Asegúrate de que tus modelos ya estén actualizados
 from app.auth.schemas import TokenPayload, UserResponse # Importamos UserResponse para tipo de current_user
 
 # Esquema de seguridad para OAuth2 con token de portador
@@ -28,17 +27,17 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 # --- Funciones de JWT ---
-# Modificado para aceptar User object y extraer sus roles
+# Modificado para aceptar User object y extraer su único rol
 def create_access_token(
     user: User, expires_delta: Optional[timedelta] = None
 ) -> str:
     # Usamos el ID del usuario como 'sub' para identificar al usuario
-    # y también incluimos el email, los roles y el venue_id en el payload.
+    # y también incluimos el email, el rol único y el venue_id en el payload.
     to_encode = {
         "sub": str(user.id), # sub es el ID del usuario (debe ser string para JWT)
         "user_id": user.id,
         "user_email": user.email,
-        "user_roles": [role.name for role in user.roles], # Obtener los nombres de los roles
+        "user_role": user.role_name, # CAMBIO AQUÍ: Ahora es un solo nombre de rol (puede ser None)
         "venue_id": user.venue_id, # Añadir el venue_id del usuario
     }
     
@@ -73,24 +72,23 @@ async def get_current_active_user(
         # Validar el payload con el esquema Pydantic TokenPayload
         token_data = TokenPayload(**payload) 
         
-        # user_id ahora es el sub. user_email, user_roles, venue_id vienen directamente de token_data
         user_id_from_token = token_data.user_id 
         user_email_from_token = token_data.user_email
-        user_roles_from_token = token_data.user_roles # Roles del token
+        user_role_from_token = token_data.user_role # CAMBIO AQUÍ: Rol único del token
         venue_id_from_token = token_data.venue_id
 
         if user_id_from_token is None or user_email_from_token is None:
             raise credentials_exception
         
-    except (JWTError, ValueError) as e: # Capturar ValueError si TokenPayload falla la validación
+    except (JWTError, ValueError) as e:
         print(f"DEBUG: Error decoding or validating token payload: {e}")
         raise credentials_exception
 
-    # Cargamos el usuario incluyendo sus roles y sede
-    # Esto es crucial para que current_user.role_names funcione
+    # Cargamos el usuario incluyendo su rol y sede
+    # Esto es crucial para que current_user.role_name funcione
     result = await db.execute(
         select(User)
-        .options(selectinload(User.roles), selectinload(User.venue))
+        .options(selectinload(User.role), selectinload(User.venue)) # CAMBIO AQUÍ: Cargamos User.role
         .filter(User.id == user_id_from_token, User.email == user_email_from_token)
     )
     user = result.scalars().first()
@@ -98,26 +96,25 @@ async def get_current_active_user(
     if user is None:
         raise credentials_exception
     
-    # Opcional pero recomendado: si los roles del token no coinciden con la DB
-    # Esto ayuda si los roles del usuario cambian en la DB después de emitir el token
-    # if sorted(user.role_names) != sorted(user_roles_from_token):
-    #     print(f"DEBUG: User roles from DB ({user.role_names}) do not match token roles ({user_roles_from_token}).")
-    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User roles changed, please re-login.")
+    # Opcional pero recomendado: si el rol del token no coincide con la DB
+    # Esto ayuda si el rol del usuario cambia en la DB después de emitir el token
+    if user.role_name != user_role_from_token: # CAMBIO AQUÍ: Comparación de rol único
+        print(f"DEBUG: User role from DB ({user.role_name}) does not match token role ({user_role_from_token}).")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User role changed, please re-login.")
     
     return user # Devuelve el objeto User de SQLAlchemy con las relaciones cargadas
 
 # --- Dependencia para verificar roles ---
 def has_role(required_roles: List[str]):
-    # ensure current_user is obtained using the correct dependency function
     def role_checker(current_user: User = Depends(get_current_active_user)):
         # Si no se requieren roles, cualquier usuario autenticado pasa
         if not required_roles:
             return current_user
             
         # Comprueba si el usuario tiene AL MENOS UNO de los roles requeridos
-        for role in required_roles:
-            if role in current_user.role_names: # user.role_names usa la @property del modelo User
-                return current_user
+        # Ahora current_user.role_name es un string (o None), no una lista
+        if current_user.role_name in required_roles: # CAMBIO AQUÍ: Verificamos si el rol único está en la lista de requeridos
+            return current_user
         
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -129,5 +126,6 @@ def has_role(required_roles: List[str]):
 SYSTEM_ADMINISTRATOR = ["System Administrator"]
 VENUE_SUPERVISOR = ["Venue Supervisor"]
 GUEST_USER = ["Guest User"]
-# Un usuario puede tener múltiples roles, por ejemplo:
+# Un usuario ahora solo puede tener un rol, por lo que combinaciones como ADMIN_OR_SUPERVISOR
+# ahora se usarían para verificar si el único rol del usuario es *uno de esos*.
 ADMIN_OR_SUPERVISOR = ["System Administrator", "Venue Supervisor"]
