@@ -24,8 +24,6 @@ class AccessDAL:
             id_card_number_at_access=access_data.id_card_number_at_access,
             logged_by_user_id=access_data.logged_by_user_id,
             entry_time=entry_time, 
-            # ELIMINADO: exit_time no es parte de AccessCreate. Se maneja por defecto en DB o se actualiza después.
-            # exit_time=access_data.exit_time, 
             access_reason=access_data.access_reason,
             department=access_data.department,
             is_recurrent=access_data.is_recurrent,
@@ -36,10 +34,11 @@ class AccessDAL:
         await self.db_session.commit()
         await self.db_session.refresh(new_access)
 
-        # Cargar eagerly las relaciones 'visitor' y 'id_card_type'
+        # Cargar eagerly las relaciones 'visitor' y 'id_card_type_at_access'
+        # Esto asegura que los datos estén disponibles después de que la sesión se pueda cerrar
         loaded_access = await self.db_session.execute(
             select(Access)
-            .options(selectinload(Access.visitor), selectinload(Access.id_card_type_at_access)) 
+            .options(selectinload(Access.visitor), selectinload(Access.id_card_type_at_access)) # <--- ¡CAMBIO AQUÍ!
             .filter(Access.id == new_access.id)
         )
         return loaded_access.scalars().first()
@@ -54,11 +53,12 @@ class AccessDAL:
     ) -> List[Access]:
         query = select(Access).options(
             selectinload(Access.visitor),       
-            selectinload(Access.id_card_type),  
+            selectinload(Access.id_card_type_at_access),  # <--- ¡CAMBIO AQUÍ!
             selectinload(Access.logged_by_user) 
         )
 
         if date_filter:
+            # Filtrar por la fecha de entrada
             query = query.filter(Access.entry_time.cast(date) == date_filter)
 
         if id_card_filter:
@@ -73,7 +73,7 @@ class AccessDAL:
     async def get_access_record_by_id(self, access_id: int) -> Optional[Access]:
         result = await self.db_session.execute(
             select(Access)
-            .options(selectinload(Access.visitor), selectinload(Access.id_card_type), selectinload(Access.logged_by_user))
+            .options(selectinload(Access.visitor), selectinload(Access.id_card_type_at_access), selectinload(Access.logged_by_user)) # <--- ¡CAMBIO AQUÍ!
             .filter(Access.id == access_id)
         )
         return result.scalars().first()
@@ -91,7 +91,7 @@ class AccessDAL:
         
         updated_access = await self.db_session.execute(
             select(Access)
-            .options(selectinload(Access.visitor), selectinload(Access.id_card_type), selectinload(Access.logged_by_user))
+            .options(selectinload(Access.visitor), selectinload(Access.id_card_type_at_access), selectinload(Access.logged_by_user)) # <--- ¡CAMBIO AQUÍ!
             .filter(Access.id == access_id)
         )
         return updated_access.scalars().first()
