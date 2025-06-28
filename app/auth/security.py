@@ -1,66 +1,54 @@
+# app/auth/security.py
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel # Necesario para Settings
+from core.models import User, Role # Importar Role para has_role
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload # Aún se usa para cargar User.role y User.venue
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+from core.database import get_db
 
-from core.config import settings
-from core.database import AsyncSessionLocal
-from core.models import User, Role # Asegúrate de que tus modelos ya estén actualizados
-from app.auth.schemas import TokenPayload, UserResponse # Importamos UserResponse para tipo de current_user
+# --- Settings ---
+class Settings(BaseModel):
+    SECRET_KEY: str = "your_super_secret_key" # ¡Cambia esto en producción!
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
-# Esquema de seguridad para OAuth2 con token de portador
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/app/v1/auth/token")
+settings = Settings()
 
-# Contexto para el hash de contraseñas
+# --- Password Hashing ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# --- Funciones de Hash de Contraseñas ---
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-def get_password_hash(password: str) -> str:
+def get_password_hash(password):
     return pwd_context.hash(password)
 
-# --- Funciones de JWT ---
-# Modificado para aceptar User object y extraer su único rol
-def create_access_token(
-    user: User, expires_delta: Optional[timedelta] = None
-) -> str:
-    # Usamos el ID del usuario como 'sub' para identificar al usuario
-    # y también incluimos el email, el rol único y el venue_id en el payload.
+# --- JWT Token Handling ---
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/app/v1/auth/token")
+
+def create_access_token(user: User, expires_delta: Optional[timedelta] = None):
+    # La información del usuario que se codificará en el token
     to_encode = {
-        "sub": str(user.id), # sub es el ID del usuario (debe ser string para JWT)
-        "user_id": user.id,
-        "user_email": user.email,
-        "user_role": user.role_name, # CAMBIO AQUÍ: Ahora es un solo nombre de rol (puede ser None)
-        "venue_id": user.venue_id, # Añadir el venue_id del usuario
+        "sub": str(user.id),
+        "email": user.email,
+        "role": user.role.name if user.role else None, # Incluir el nombre del rol
+        "venue_id": user.venue_id, # Incluir el ID de la sede
     }
-    
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode["exp"] = expire.timestamp() # El timestamp debe ser float
-
+    to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-# --- Dependencia para la base de datos ---
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
-
-# --- Dependencia para obtener el usuario actual a partir del token ---
-# Se asegura de que el usuario devuelto sea un objeto User SQLAlchemy con las relaciones cargadas
-async def get_current_active_user(
-    db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)
-) -> User: # Retorna un objeto User de SQLAlchemy
+async def get_current_user_from_token(token: str = Depends(oauth2_scheme)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -68,64 +56,59 @@ async def get_current_active_user(
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        
-        # Validar el payload con el esquema Pydantic TokenPayload
-        token_data = TokenPayload(**payload) 
-        
-        user_id_from_token = token_data.user_id 
-        user_email_from_token = token_data.user_email
-        user_role_from_token = token_data.user_role # CAMBIO AQUÍ: Rol único del token
-        venue_id_from_token = token_data.venue_id
-
-        if user_id_from_token is None or user_email_from_token is None:
+        user_id: str = payload.get("sub")
+        if user_id is None:
             raise credentials_exception
-        
-    except (JWTError, ValueError) as e:
-        print(f"DEBUG: Error decoding or validating token payload: {e}")
+        # No necesitas el `user_role` ni `user_venue_id` para *obtener* el usuario,
+        # pero los necesitas para las dependencias de rol y venue.
+        # Puedes pasarlos directamente si el payload tiene esos datos
+        token_data = {
+            "user_id": int(user_id),
+            "user_role_name": payload.get("role"),
+            "user_venue_id": payload.get("venue_id")
+        }
+    except JWTError:
         raise credentials_exception
+    return token_data # Retorna un dict con la data del token
 
-    # Cargamos el usuario incluyendo su rol y sede
-    # Esto es crucial para que current_user.role_name funcione
+async def get_current_active_user(
+    token_data: dict = Depends(get_current_user_from_token),
+    db: AsyncSession = Depends(get_db)
+) -> User:
+    # Busca el usuario por ID
     result = await db.execute(
         select(User)
-        .options(selectinload(User.role), selectinload(User.venue)) # CAMBIO AQUÍ: Cargamos User.role
-        .filter(User.id == user_id_from_token, User.email == user_email_from_token)
+        .options(selectinload(User.role), selectinload(User.venue))
+        .filter(User.id == token_data["user_id"])
     )
     user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
 
-    if user is None:
-        raise credentials_exception
-    
-    # Opcional pero recomendado: si el rol del token no coincide con la DB
-    # Esto ayuda si el rol del usuario cambia en la DB después de emitir el token
-    if user.role_name != user_role_from_token: # CAMBIO AQUÍ: Comparación de rol único
-        print(f"DEBUG: User role from DB ({user.role_name}) does not match token role ({user_role_from_token}).")
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User role changed, please re-login.")
-    
-    return user # Devuelve el objeto User de SQLAlchemy con las relaciones cargadas
+    # Asegúrate de que el objeto User retornado tiene la información de rol y venue cargada
+    # y que los datos del token coinciden si es necesario para depuración.
+    # user.role_name = user.role.name if user.role else None # Esto no es necesario en el modelo directamente
+    return user
 
 # --- Dependencia para verificar roles ---
 def has_role(required_roles: List[str]):
-    def role_checker(current_user: User = Depends(get_current_active_user)):
-        # Si no se requieren roles, cualquier usuario autenticado pasa
+    async def role_checker(current_user: User = Depends(get_current_active_user)):
         if not required_roles:
-            return current_user
+            return current_user # No hay roles específicos requeridos
             
-        # Comprueba si el usuario tiene AL MENOS UNO de los roles requeridos
-        # Ahora current_user.role_name es un string (o None), no una lista
-        if current_user.role_name in required_roles: # CAMBIO AQUÍ: Verificamos si el rol único está en la lista de requeridos
+        if current_user.role and current_user.role.name in required_roles:
             return current_user
         
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+            detail=f"Not enough permissions. Required roles: {', '.join(required_roles)}. Your role: {current_user.role.name if current_user.role else 'None'}"
         )
     return role_checker
 
-# Roles predefinidos para facilitar su uso (Asegúrate que estos nombres coinciden con la DB)
+# Roles predefinidos (ASEGÚRATE DE QUE ESTOS NOMBRES COINCIDEN EXACTAMENTE CON TUS ROLES EN LA DB)
 SYSTEM_ADMINISTRATOR = ["System Administrator"]
 VENUE_SUPERVISOR = ["Venue Supervisor"]
-GUEST_USER = ["Guest User"]
-# Un usuario ahora solo puede tener un rol, por lo que combinaciones como ADMIN_OR_SUPERVISOR
-# ahora se usarían para verificar si el único rol del usuario es *uno de esos*.
-ADMIN_OR_SUPERVISOR = ["System Administrator", "Venue Supervisor"]
+RECEPTIONIST = ["Receptionist"]
+# ELIMINAR O COMENTAR: GUEST_USER = ["Guest User"]

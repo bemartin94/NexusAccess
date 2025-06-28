@@ -6,7 +6,8 @@ from datetime import date, datetime, time # Asegúrate de importar 'time'
 from app.auth.security import get_current_active_user, get_db
 
 # --- Importaciones de esquemas y DALs ---
-from app.access.schemas import AccessResponse, AccessUpdate, AccessCreate, VisitCreateRequest
+from app.access.schemas import AccessResponse, AccessUpdate, AccessCreate
+from app.visitors.schemas import VisitCreateRequest
 from app.access.dal import AccessDAL # Importación añadida
 from app.visitors.dal import VisitorDAL
 from app.visitors.schemas import VisitorCreate

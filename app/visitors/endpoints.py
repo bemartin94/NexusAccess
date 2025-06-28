@@ -1,178 +1,90 @@
+# app/visitors/endpoints.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select # Necesario para consultas asíncronas
-from typing import List
-from datetime import datetime # Importar datetime para combinar fecha y hora
+from typing import List, Optional
 
-from core.database import AsyncSessionLocal
+from core.database import get_db # Asegúrate que esto apunta a tu AsyncSessionLocal
 
-# Importa tus modelos directamente desde core.models
-from core.models import Visitor, Access, AccessTime, User, Venue, Supervisor, IdCardType # Asegúrate de que estos modelos estén definidos en core/models.py
+# Importa los modelos actualizados de core.models
+from core.models import Visitor, IdCardType # Solo los modelos que este DAL necesita directamente
 
-# Importa los esquemas de visitantes, incluyendo el nuevo VisitCreateRequest
-from app.visitors.schemas import VisitorCreate, VisitorResponse, VisitorUpdate, VisitCreateRequest
-
-# Importa el DAL de visitantes
+# Importa los esquemas de visitantes
+from app.visitors.schemas import VisitorCreate, VisitorUpdate, VisitorResponse
 from app.visitors.dal import VisitorDAL
+from app.id_card_types.dal import IdCardTypeDAL
 
-# Importa esquemas para Access (los modelos ya vienen de core.models)
-from app.access.schemas import AccessCreate, AccessResponse # Usado en la lógica, pero no como request body principal aquí
+# NO hay dependencias de rol aquí. Este es un router "base".
+router = APIRouter(tags=["Visitors (Base CRUD)"])
 
-# Importar seguridad y el esquema User para obtener el usuario actual
-from app.auth.security import get_current_active_user
-from app.users.schemas import UserResponse # Asumo que tienes un UserResponse schema para el usuario autenticado
+# --- Endpoints CRUD para la entidad Visitor ---
 
-# Inicializa el APIRouter
-router = APIRouter(tags=["Visitors"])
-
-# Dependencia para obtener la sesión de la base de datos
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
-
-# --- NUEVO ENDPOINT PARA REGISTRAR UNA VISITA COMPLETA ---
-# Este endpoint maneja la creación de un visitante (si no existe) y el registro de su acceso
-@router.post("/register_visit", response_model=dict, operation_id="register_complete_visit")
-async def register_complete_visit(
-    visit_request: VisitCreateRequest, # Utiliza el esquema combinado que creamos
-    db: AsyncSession = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_active_user) # Requiere autenticación
+@router.post("/", response_model=VisitorResponse, status_code=status.HTTP_201_CREATED)
+async def create_visitor_base(
+    visitor_in: VisitorCreate,
+    db: AsyncSession = Depends(get_db)
 ):
-    # Validaciones de seguridad: asegurar que el usuario autenticado tiene permisos
-    # para registrar en la sede y como supervisor especificados.
-    if visit_request.supervisor_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No autorizado para registrar visitas para otro supervisor."
-        )
-    # Suponiendo que 'current_user' tiene un atributo 'venue_id'
-    if hasattr(current_user, 'venue_id') and visit_request.sede != current_user.venue_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No autorizado para registrar visitas en esta sede."
-        )
-
-    # 1. Buscar o crear el visitante
     visitor_dal = VisitorDAL(db)
-    existing_visitor = await visitor_dal.get_by_id_card(visit_request.id_card)
+    id_card_type_dal = IdCardTypeDAL(db) # Necesario para validar el id_card_type_id
 
-    if not existing_visitor:
-        # Si el visitante no existe, se crea uno nuevo
-        visitor_data = VisitorCreate(
-            name=visit_request.name,
-            last_name=visit_request.last_name,
-            id_card=visit_request.id_card,
-            phone=visit_request.phone,
-            email=visit_request.email,
-            id_card_type_id=visit_request.id_card_type_id,
-            supervisor_id=visit_request.supervisor_id,
-            venue_id=visit_request.sede
-        )
-        new_visitor = await visitor_dal.create_visitor(visitor_data)
-        visitor_id = new_visitor.id
-    else:
-        # Si el visitante ya existe, se usa su ID.
-        # Opcional: Aquí podrías implementar lógica para actualizar campos del visitante
-        # si los datos de la solicitud difieren de los existentes (ej. email, teléfono).
-        visitor_id = existing_visitor.id
+    # Validar que el id_card_type_id exista
+    id_card_type = await id_card_type_dal.get_id_card_type_by_id(visitor_in.id_card_type_id)
+    if not id_card_type:
+        raise HTTPException(status_code=400, detail="Tipo de documento de identidad no válido.")
 
-    # 2. Crear el registro de acceso (tabla 'accesses')
-    # Los campos aquí deben coincidir con tu modelo Access en core/models.py
-    access_create_data = {
-        "visitor_id": visitor_id,
-        "venue_id": visit_request.sede,
-        "supervisor_id": visit_request.supervisor_id,
-        "access_reason": visit_request.reason_visit, # Usa 'access_reason' como en tu modelo
-        "id_card_type_id": visit_request.id_card_type_id,
-        "status": "enabled" # Estado por defecto al crear el acceso
-    }
+    # Validar unicidad del id_card_number si es requerido
+    if visitor_in.id_card_number:
+        existing_visitor = await visitor_dal.get_visitor_by_id_card_number(visitor_in.id_card_number)
+        if existing_visitor:
+            raise HTTPException(status_code=400, detail="Ya existe un visitante con este número de identificación.")
+    
+    new_visitor = await visitor_dal.create_visitor(visitor_in)
+    return new_visitor
 
-    # Crea una instancia del modelo Access.
-    db_access = Access(**access_create_data)
-
-    try:
-        db.add(db_access)
-        await db.flush() # Importante: db.flush() para que db_access.id esté disponible
-
-        # 3. Crear el registro de tiempo de acceso (tabla 'access_times')
-        # Combina la fecha y hora del frontend en un solo objeto datetime
-        combined_entry_datetime = datetime.combine(visit_request.fecha, visit_request.hora_ing)
-
-        db_access_time = AccessTime(
-            access_id=db_access.id, # Vincula con el Access recién creado
-            access_date=combined_entry_datetime,
-            exit_date=None # La fecha de salida es nula inicialmente
-        )
-        db.add(db_access_time)
-
-        await db.commit() # Confirma todas las operaciones en la base de datos
-        await db.refresh(db_access) # Refresca los objetos para obtener sus IDs y relaciones
-        await db.refresh(db_access_time)
-
-    except Exception as e:
-        await db.rollback() # Si algo falla, se revierte la transacción
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al registrar la visita completa: {e}"
-        )
-
-    return {
-        "message": "Visita registrada con éxito",
-        "visitor_id": visitor_id,
-        "access_id": db_access.id,
-        "access_time_id": db_access_time.id
-    }
-
-# --- ENDPOINTS EXISTENTES PARA CRUD INDIVIDUAL DE VISITANTES ---
-# (Estos son los que ya tenías y que no están directamente relacionados con el nuevo flujo de registro de visita completa)
-
-# El endpoint POST "/" original si lo sigues usando para crear solo visitantes
-# @router.post("/", response_model=VisitorResponse, operation_id="create_visitor")
-# async def create_visitor(
-#     visitor_in: VisitorCreate,
-#     db: AsyncSession = Depends(get_db),
-#     current_user: UserResponse = Depends(get_current_user)
-# ):
-#     return await VisitorDAL(db).create_visitor(visitor_in)
-
-
-@router.get("/{visitor_id}", response_model=VisitorResponse, operation_id="read_visitor")
-async def read_visitor(
-    visitor_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_active_user)
+@router.get("/", response_model=List[VisitorResponse])
+async def get_all_visitors_base(
+    skip: int = 0, limit: int = 100,
+    db: AsyncSession = Depends(get_db)
 ):
-    visitor = await VisitorDAL(db).get_by_id(visitor_id)
+    visitor_dal = VisitorDAL(db)
+    visitors = await visitor_dal.get_visitors(skip=skip, limit=limit)
+    return visitors
+
+@router.get("/{visitor_id}", response_model=VisitorResponse)
+async def get_visitor_by_id_base(
+    visitor_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    visitor_dal = VisitorDAL(db)
+    visitor = await visitor_dal.get_visitor_by_id(visitor_id)
     if not visitor:
-        raise HTTPException(status_code=404, detail="Visitor not found")
+        raise HTTPException(status_code=404, detail="Visitante no encontrado.")
     return visitor
 
-@router.put("/{visitor_id}", response_model=VisitorResponse, operation_id="update_visitor")
-async def update_visitor(
+@router.patch("/{visitor_id}", response_model=VisitorResponse)
+async def update_visitor_base(
     visitor_id: int,
     visitor_in: VisitorUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_active_user)
+    db: AsyncSession = Depends(get_db)
 ):
-    visitor = await VisitorDAL(db).get_by_id(visitor_id)
-    if not visitor:
-        raise HTTPException(status_code=404, detail="Visitor not found")
+    visitor_dal = VisitorDAL(db)
+    if visitor_in.id_card_type_id: # Si se intenta actualizar el tipo de ID
+        id_card_type_dal = IdCardTypeDAL(db)
+        id_card_type = await id_card_type_dal.get_id_card_type_by_id(visitor_in.id_card_type_id)
+        if not id_card_type:
+            raise HTTPException(status_code=400, detail="Tipo de documento de identidad no válido.")
 
-    updated_visitor = await VisitorDAL(db).update_visitor(visitor_id, visitor_in)
+    updated_visitor = await visitor_dal.update_visitor(visitor_id, visitor_in)
     if not updated_visitor:
-        raise HTTPException(status_code=404, detail="Visitor not found or no changes made")
+        raise HTTPException(status_code=404, detail="Visitante no encontrado o no se pudo actualizar.")
     return updated_visitor
 
-@router.delete("/{visitor_id}", response_model=dict, operation_id="delete_visitor")
-async def delete_visitor(
+@router.delete("/{visitor_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_visitor_base(
     visitor_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_active_user)
+    db: AsyncSession = Depends(get_db)
 ):
-    dal = VisitorDAL(db)
-    deleted = await dal.delete(visitor_id)
-
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Visitor not found")
-
-    return {"message": "Visitor deleted successfully"}
+    visitor_dal = VisitorDAL(db)
+    success = await visitor_dal.delete_visitor(visitor_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Visitante no encontrado.")
+    return {"message": "Visitante eliminado exitosamente."}
