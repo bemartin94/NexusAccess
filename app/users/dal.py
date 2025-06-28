@@ -1,5 +1,5 @@
 # app/users/dal.py
-from sqlalchemy.ext.asyncio import AsyncSession # Importar AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession 
 from sqlalchemy.orm import joinedload
 from sqlalchemy import select, update
 from typing import List, Optional
@@ -9,11 +9,11 @@ from app.users.schemas import UserCreate, UserUpdate
 from app.auth.security import get_password_hash
 
 class UserDAL:
-    def __init__(self, db: AsyncSession): # Cambiado a AsyncSession
+    def __init__(self, db: AsyncSession): 
         self.db = db
 
     async def get_user_by_id(self, user_id: int) -> Optional[User]:
-        result = await self.db.execute( # await añadido
+        result = await self.db.execute( 
             select(User)
             .options(joinedload(User.role), joinedload(User.venue))
             .where(User.id == user_id)
@@ -21,7 +21,7 @@ class UserDAL:
         return result.scalars().first()
 
     async def get_user_by_email(self, email: str) -> Optional[User]:
-        result = await self.db.execute( # await añadido
+        result = await self.db.execute( 
             select(User)
             .options(joinedload(User.role), joinedload(User.venue))
             .where(User.email == email)
@@ -29,7 +29,7 @@ class UserDAL:
         return result.scalars().first()
 
     async def get_users(self, skip: int = 0, limit: int = 100) -> List[User]:
-        result = await self.db.execute( # await añadido
+        result = await self.db.execute( 
             select(User)
             .options(joinedload(User.role), joinedload(User.venue))
             .offset(skip).limit(limit)
@@ -49,8 +49,8 @@ class UserDAL:
             is_active=user_data.is_active
         )
         self.db.add(new_user)
-        await self.db.commit() # await añadido
-        await self.db.refresh(new_user) # await añadido
+        await self.db.commit() 
+        await self.db.refresh(new_user) 
         return new_user
 
     async def update_user(self, user_id: int, user_data: UserUpdate) -> Optional[User]:
@@ -66,20 +66,20 @@ class UserDAL:
         for key, value in update_data.items():
             setattr(user_to_update, key, value)
         
-        await self.db.commit() # await añadido
-        await self.db.refresh(user_to_update) # await añadido
+        await self.db.commit()
+        await self.db.refresh(user_to_update)
         return user_to_update
     
     async def delete_user(self, user_id: int) -> bool:
         user_to_delete = await self.get_user_by_id(user_id)
         if user_to_delete:
-            await self.db.delete(user_to_delete) # await añadido
-            await self.db.commit() # await añadido
+            await self.db.delete(user_to_delete)
+            await self.db.commit() 
             return True
         return False
 
     async def update_user_password(self, user: User, new_password: str) -> User:
         user.password = get_password_hash(new_password)
-        await self.db.commit() # await añadido
-        await self.db.refresh(user) # await añadido
+        await self.db.commit()
+        await self.db.refresh(user) 
         return user

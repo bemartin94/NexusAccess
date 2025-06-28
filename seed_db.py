@@ -2,29 +2,21 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from passlib.hash import bcrypt
-# Importa engine directamente de core.database para asegurar que usa el mismo objeto de motor
-from core.database import AsyncSessionLocal, engine, Base # Asegúrate de importar 'engine' también
+from core.database import AsyncSessionLocal, engine, Base 
 from core.models import Role, User, IdCardType
 
 async def init_db():
-    # Asegurarse de que las tablas existen. Esto debería ser manejado por Alembic.
     print("Database tables are assumed to be managed by Alembic.")
 
-    # Abrir una conexión limpia y cerrarla al finalizar la siembra
     async with AsyncSessionLocal() as session:
-        # 1. Crear Roles si no existen
         roles_to_create = ["System Administrator", "Venue Supervisor", "Receptionist"]
         
-        # Obtener los roles existentes para evitar duplicados
-        # Asegúrate de que la tabla 'roles' exista antes de esta consulta.
-        # Si este es el primer error, la tabla 'roles' realmente no se creó,
-        # lo que apunta al problema de la migración no aplicada correctamente.
         try:
             existing_roles_result = await session.execute(select(Role))
             existing_roles = {r.name: r for r in existing_roles_result.scalars()}
         except Exception as e:
             print(f"Error al consultar la tabla 'roles'. Asegúrate de que la migración ha sido aplicada: {e}")
-            raise # Re-lanza el error para que sepamos que algo sigue mal con la DB schema.
+            raise
 
 
         for role_name in roles_to_create:
@@ -36,8 +28,6 @@ async def init_db():
 
         await session.commit()
         
-        # Refrescar los roles después del commit para asegurar que los IDs estén cargados si se necesitan.
-        # (Aunque aquí usamos `existing_roles[role_name] = new_role` para eso)
         roles_in_db_result = await session.execute(select(Role))
         roles_in_db = {r.name: r for r in roles_in_db_result.scalars()}
 
@@ -96,10 +86,7 @@ async def init_db():
             print(f"Usuario System Administrator '{admin_email}' ya existe. Saltando creación.")
 
     print("Siembra de base de datos completa.")
-    # Cierre explícito del motor después de que la siembra esté completa
-    # Esto es importante para liberar los recursos de la base de datos,
-    # especialmente en scripts standalone.
-    await engine.dispose() # <--- ¡Añade esta línea!
+    await engine.dispose() 
 
 if __name__ == "__main__":
     asyncio.run(init_db())

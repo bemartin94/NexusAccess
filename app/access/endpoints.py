@@ -1,19 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
-from datetime import date, datetime, time # Asegúrate de importar 'time'
+from datetime import date, datetime, time 
 
 from app.auth.security import get_current_active_user, get_db
 
-# --- Importaciones de esquemas y DALs ---
 from app.access.schemas import AccessResponse, AccessUpdate, AccessCreate
 from app.visitors.schemas import VisitCreateRequest
-from app.access.dal import AccessDAL # Importación añadida
+from app.access.dal import AccessDAL 
 from app.visitors.dal import VisitorDAL
 from app.visitors.schemas import VisitorCreate
 from app.users.schemas import UserResponse # Para el tipo de 'current_user'
 
-# --- Router sin prefijo, asumiendo que app.main.py lo manejará ---
 router = APIRouter(tags=["Access Management"]) 
 
 
@@ -23,9 +21,8 @@ async def register_complete_visit(
     db: AsyncSession = Depends(get_db),
     current_user: UserResponse = Depends(get_current_active_user)
 ):
-    """
-    Registra una visita completa, incluyendo la creación o búsqueda del visitante y el registro de acceso.
-    """
+
+    #Registra una visita completa, incluyendo la creación o búsqueda del visitante y el registro de acceso.
     visitor_dal = VisitorDAL(db)
     access_dal = AccessDAL(db)
 
@@ -82,10 +79,8 @@ async def list_accesses_route(
     db: AsyncSession = Depends(get_db),
     current_user: UserResponse = Depends(get_current_active_user)
 ):
-    """
-    Obtiene una lista de registros de acceso, con filtros y paginación,
-    para la sede del usuario autenticado.
-    """
+
+    #Obtiene una lista de registros de acceso, con filtros y paginación, para la sede del usuario autenticado.
     access_dal = AccessDAL(db)
     
     user_venue_id = current_user.venue_id 
@@ -107,9 +102,8 @@ async def get_access_by_id_route(
     db: AsyncSession = Depends(get_db),
     current_user: UserResponse = Depends(get_current_active_user)
 ):
-    """
-    Obtiene un registro de acceso específico por su ID, validando permisos.
-    """
+
+    #Obtiene un registro de acceso específico por su ID, validando permisos.
     access_dal = AccessDAL(db)
     access_record = await access_dal.get_access_record_by_id(access_id)
     
@@ -125,9 +119,8 @@ async def update_access_route(
     db: AsyncSession = Depends(get_db),
     current_user: UserResponse = Depends(get_current_active_user)
 ):
-    """
-    Actualiza campos específicos de un registro de acceso (ej. hora de salida).
-    """
+   
+    #Actualiza campos específicos de un registro de acceso (ej. hora de salida).
     access_dal = AccessDAL(db)
     existing_access = await access_dal.get_access_record_by_id(access_id)
     if not existing_access or existing_access.venue_id != current_user.venue_id:
@@ -143,9 +136,8 @@ async def delete_access_route(
     db: AsyncSession = Depends(get_db),
     current_user: UserResponse = Depends(get_current_active_user)
 ):
-    """
-    Elimina un registro de acceso existente.
-    """
+
+    #Elimina un registro de acceso existente.
     access_dal = AccessDAL(db)
     existing_access = await access_dal.get_access_record_by_id(access_id)
     if not existing_access or existing_access.venue_id != current_user.venue_id:

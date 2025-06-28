@@ -1,10 +1,7 @@
-# app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# Importa el router de autenticación principal (renombrado)
 from app.auth import endpoints
 
-# Importa los nuevos routers organizados por rol
 from app.routers import admin_router, supervisor_router, receptionist_router
 from app.visitors.endpoints import router as visitors_router
 from app.venues.endpoints import router as venues_router
@@ -13,7 +10,6 @@ from app.id_card_types.endpoints import router as id_card_types_router
 from app.roles.endpoints import router as roles_router
 from app.users.endpoints import router as users_router
 from app.auth.endpoints import router as auth_router
-
 
 app = FastAPI(
     title="NexusAccess API",
@@ -24,11 +20,11 @@ app = FastAPI(
 )
 
 # --- Configuración CORS ---
-# Mantén esta configuración CORS igual
+
 origins = [
     "http://localhost",
-    "http://127.0.0.1:5501", # Asegúrate de que esta URL sea correcta para tu frontend
-    "http://127.0.0.1:5500", # Asegúrate de que esta URL sea correcta para tu frontend
+    "http://127.0.0.1:5501", 
+    "http://127.0.0.1:5500", 
     "http://192.168.0.75:5500",
 ]
 
@@ -61,5 +57,5 @@ app.include_router(users_router, prefix=f"{prefix_base_api}/users")
 
 
 @app.get("/")
-async def root_message(): # Renombrado para mayor claridad
+async def root_message(): 
     return {"message": "Welcome to NexusAccess API!"}

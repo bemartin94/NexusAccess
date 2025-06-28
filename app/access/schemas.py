@@ -1,4 +1,3 @@
-# app/access/schemas.py
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 from datetime import datetime
@@ -21,7 +20,6 @@ class AccessBase(BaseModel):
         from_attributes = True
 
 class AccessCreate(AccessBase):
-    # entry_time no es necesario aquí, ya que tiene server_default en el modelo
     pass
 
 class AccessUpdate(BaseModel):

@@ -1,19 +1,17 @@
-# app/routers/supervisor_router.py
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from core.database import get_db
-from app.auth.security import has_role, VENUE_SUPERVISOR # Importa has_role y la constante
+from app.auth.security import has_role, VENUE_SUPERVISOR 
 from app.visitors.dal import VisitorDAL
 from app.access.dal import AccessDAL
 from app.id_card_types.dal import IdCardTypeDAL
-from core.models import User # Para el tipo de current_user
+from core.models import User 
 
 from app.visitors.schemas import VisitorCreate, VisitorUpdate, VisitorResponse
 from app.access.schemas import AccessCreate, AccessUpdate, AccessResponse
 
-# El router ahora depende de has_role con el rol de supervisor
 router = APIRouter(prefix="/supervisor", tags=["Supervisor"], dependencies=[Depends(has_role(VENUE_SUPERVISOR))])
 
 # --- Gestión de Visitantes (Supervisor puede registrar/editar en su sede) ---

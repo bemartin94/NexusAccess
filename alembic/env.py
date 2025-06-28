@@ -1,21 +1,15 @@
-# alembic/env.py
-
-from core.database import Base # Asegúrate de que esto apunte a tu Base de SQLAlchemy
-# Importa también el motor y el tipo de sesión asíncrona para la configuración online
-from core.database import engine as async_engine # Renombra para evitar conflicto con engine_from_config
-from core.database import AsyncSessionLocal # Si necesitas una sesión
-from sqlalchemy.ext.asyncio import AsyncConnection # Necesario para el tipo de conexión asíncrona
-from sqlalchemy import pool # Ya lo tienes
-from sqlalchemy import text # Puede ser útil para op.execute en migraciones
+from core.database import Base 
+from core.database import engine as async_engine 
+from core.database import AsyncSessionLocal 
+from sqlalchemy.ext.asyncio import AsyncConnection 
+from sqlalchemy import pool 
+from sqlalchemy import text 
 
 from logging.config import fileConfig
 import asyncio # Necesario para asyncio.run()
 from alembic import context
 
-# --- ¡NUEVO! IMPORTACIÓN CLAVE PARA ASEGURAR QUE LOS MODELOS SE CARGAN ---
-# Esto es CRÍTICO para que Alembic vea todas tus tablas definidas en Base.metadata.
-# Sin esta importación, Base.metadata podría estar vacío al momento de la autogeneración.
-import core.models # <--- ¡AÑADE ESTA LÍNEA! Esto carga todas las definiciones de modelos.
+import core.models 
 # ----------------------------------------------------------------------
 
 # this is the Alembic Config object, which provides
@@ -53,7 +47,6 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-# CAMBIOS CLAVE: hacerla asíncrona y usar el motor asíncrono de core.database
 async def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
 

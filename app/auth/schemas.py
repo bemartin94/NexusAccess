@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict, Field # No necesitamos computed_field para el rol único en UserResponse
+from pydantic import BaseModel, EmailStr, ConfigDict, Field 
 from typing import Optional, List
 
 class TokenPayload(BaseModel):
@@ -6,7 +6,7 @@ class TokenPayload(BaseModel):
     user_email: EmailStr # Email del usuario
     user_id: int
     venue_id: Optional[int] = None
-    user_role: Optional[str] = None # CAMBIO AQUÍ: user_role ahora es un string opcional
+    user_role: Optional[str] = None 
     exp: float # 'exp' debe ser float para aceptar timestamps con decimales
 
     model_config = ConfigDict(from_attributes=True, extra="ignore")
@@ -25,7 +25,7 @@ class Token(BaseModel):
     token_type: str = "bearer"
     user_id: int # ID del usuario autenticado
     user_email: EmailStr # Email del usuario autenticado
-    user_role: Optional[str] = None # CAMBIO AQUÍ: user_role ahora es un string opcional
+    user_role: Optional[str] = None 
     venue_id: Optional[int] = None # ID de la sede del usuario (si aplica)
 
     model_config = ConfigDict(
@@ -36,7 +36,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[EmailStr] = None
     user_id: Optional[int] = None
-    role: Optional[str] = None # CAMBIO AQUÍ: 'role' ahora es un string opcional
+    role: Optional[str] = None 
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -50,7 +50,7 @@ class UserCreate(BaseModel):
     last_name: Optional[str] = None
     phone: Optional[str] = None
     venue_id: Optional[int] = None
-    role_id: Optional[int] = None # CAMBIO AQUÍ: role_id ahora es un int opcional, NO una lista
+    role_id: Optional[int] = None 
 
 class UserResponse(BaseModel):
     id: int
@@ -60,10 +60,7 @@ class UserResponse(BaseModel):
     phone: Optional[str] = None
     venue_id: Optional[int] = None
     
-    # Nuevo: Agregamos directamente el nombre del rol.
-    # Pydantic puede mapear esto si tu modelo SQLAchemy User tiene una relación 'role' y esa 'role' tiene un 'name'.
     # Si el `user.role` de SQLAlchemy es None, Pydantic lo mapeará a None automáticamente.
     role_name: Optional[str] = Field(None, alias="role.name") 
 
-    model_config = ConfigDict(from_attributes=True) # `extra="forbid"` podría causar problemas si el ORM trae más datos.
-                                                    # `from_attributes=True` es suficiente.
+    model_config = ConfigDict(from_attributes=True) 

@@ -1,104 +1,117 @@
 # app/access/dal.py
-from sqlalchemy.ext.asyncio import AsyncSession # Importar AsyncSession
-from sqlalchemy.orm import joinedload
-from sqlalchemy import select, update
-from typing import List, Optional
-from datetime import datetime
 
-from core.models import Access, Visitor, Venue, User, IdCardType
-from app.access.schemas import AccessCreate, AccessUpdate
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import or_
+from sqlalchemy.orm import selectinload 
+from typing import List, Optional
+from datetime import datetime, date, timezone 
+
+from core.models import Visitor, Access, IdCardType, Venue 
+from app.visitors.schemas import VisitorCreate, VisitorUpdate 
+from app.access.schemas import AccessCreate, AccessUpdate 
 
 class AccessDAL:
-    def __init__(self, db: AsyncSession): # Cambiado a AsyncSession
-        self.db = db
+    def __init__(self, db_session: AsyncSession):
+        self.db_session = db_session
 
-    async def get_access_log_by_id(self, access_id: int) -> Optional[Access]:
-        result = await self.db.execute( # await añadido
-            select(Access)
-            .options(
-                joinedload(Access.visitor),
-                joinedload(Access.venue),
-                joinedload(Access.logged_by_user),
-                joinedload(Access.id_card_type_at_access)
-            )
-            .where(Access.id == access_id)
-        )
-        return result.scalars().first()
-
-    async def get_access_logs(
-        self, 
-        skip: int = 0, 
-        limit: int = 100, 
-        venue_id: Optional[int] = None,
-        visitor_id: Optional[int] = None,
-        logged_by_user_id: Optional[int] = None,
-        status: Optional[str] = None
-    ) -> List[Access]:
-        query = select(Access).options(
-            joinedload(Access.visitor),
-            joinedload(Access.venue),
-            joinedload(Access.logged_by_user),
-            joinedload(Access.id_card_type_at_access)
-        )
-
-        if venue_id:
-            query = query.where(Access.venue_id == venue_id)
-        if visitor_id:
-            query = query.where(Access.visitor_id == visitor_id)
-        if logged_by_user_id:
-            query = query.where(Access.logged_by_user_id == logged_by_user_id)
-        if status:
-            query = query.where(Access.status == status)
-
-        result = await self.db.execute(query.offset(skip).limit(limit)) # await añadido
-        return result.scalars().all()
-
-    async def create_access_log(self, access_data: AccessCreate) -> Access:
+    async def create_access_log(self, access_data: AccessCreate, entry_time: datetime) -> Access:
+        # Crea el objeto Access
         new_access = Access(
-            venue_id=access_data.venue_id,
             visitor_id=access_data.visitor_id,
+            venue_id=access_data.venue_id,
             id_card_type_id=access_data.id_card_type_id,
             id_card_number_at_access=access_data.id_card_number_at_access,
             logged_by_user_id=access_data.logged_by_user_id,
+            entry_time=entry_time, 
+            # ELIMINADO: exit_time no es parte de AccessCreate. Se maneja por defecto en DB o se actualiza después.
+            # exit_time=access_data.exit_time, 
             access_reason=access_data.access_reason,
             department=access_data.department,
             is_recurrent=access_data.is_recurrent,
-            status=access_data.status,
+            status=access_data.status
         )
-        self.db.add(new_access)
-        await self.db.commit() # await añadido
-        await self.db.refresh(new_access) # await añadido
-        return new_access
-
-    async def update_access_log(self, access_id: int, access_data: AccessUpdate) -> Optional[Access]:
-        access_to_update = await self.get_access_log_by_id(access_id)
-        if not access_to_update:
-            return None
         
-        update_data = access_data.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(access_to_update, key, value)
-            
-        await self.db.commit() # await añadido
-        await self.db.refresh(access_to_update) # await añadido
-        return access_to_update
+        self.db_session.add(new_access)
+        await self.db_session.commit()
+        await self.db_session.refresh(new_access)
+
+        # Cargar eagerly las relaciones 'visitor' y 'id_card_type'
+        loaded_access = await self.db_session.execute(
+            select(Access)
+            .options(selectinload(Access.visitor), selectinload(Access.id_card_type_at_access)) 
+            .filter(Access.id == new_access.id)
+        )
+        return loaded_access.scalars().first()
+
+    async def get_access_records(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        date_filter: Optional[date] = None,
+        id_card_filter: Optional[str] = None,
+        venue_id: Optional[int] = None
+    ) -> List[Access]:
+        query = select(Access).options(
+            selectinload(Access.visitor),       
+            selectinload(Access.id_card_type),  
+            selectinload(Access.logged_by_user) 
+        )
+
+        if date_filter:
+            query = query.filter(Access.entry_time.cast(date) == date_filter)
+
+        if id_card_filter:
+            query = query.filter(Access.id_card_number_at_access.ilike(f"%{id_card_filter}%"))
+        
+        if venue_id:
+            query = query.filter(Access.venue_id == venue_id)
+
+        result = await self.db_session.execute(query.offset(skip).limit(limit))
+        return result.scalars().all()
+
+    async def get_access_record_by_id(self, access_id: int) -> Optional[Access]:
+        result = await self.db_session.execute(
+            select(Access)
+            .options(selectinload(Access.visitor), selectinload(Access.id_card_type), selectinload(Access.logged_by_user))
+            .filter(Access.id == access_id)
+        )
+        return result.scalars().first()
+
+    async def update_access(self, access_id: int, access_update_data: AccessUpdate) -> Optional[Access]:
+        existing_access = await self.get_access_record_by_id(access_id)
+        if not existing_access:
+            return None
+
+        for field, value in access_update_data.model_dump(exclude_unset=True).items():
+            setattr(existing_access, field, value)
+        
+        await self.db_session.commit()
+        await self.db_session.refresh(existing_access)
+        
+        updated_access = await self.db_session.execute(
+            select(Access)
+            .options(selectinload(Access.visitor), selectinload(Access.id_card_type), selectinload(Access.logged_by_user))
+            .filter(Access.id == access_id)
+        )
+        return updated_access.scalars().first()
 
     async def mark_access_exit_time(self, access_id: int) -> Optional[Access]:
-        access_to_update = await self.get_access_log_by_id(access_id)
-        if not access_to_update:
+        access_log = await self.get_access_record_by_id(access_id) 
+        if not access_log:
             return None
-        
-        if access_to_update.exit_time is None:
-            access_to_update.exit_time = datetime.now()
-            access_to_update.status = "Cerrado"
-            await self.db.commit() # await añadido
-            await self.db.refresh(access_to_update) # await añadido
-        return access_to_update
 
-    async def delete_access_log(self, access_id: int) -> bool:
-        access_to_delete = await self.get_access_log_by_id(access_id)
-        if access_to_delete:
-            await self.db.delete(access_to_delete) # await añadido
-            await self.db.commit() # await añadido
-            return True
-        return False
+        access_log.exit_time = datetime.now(timezone.utc) 
+        access_log.status = "Finalizado"
+        await self.db_session.commit()
+        await self.db_session.refresh(access_log)
+        
+        return access_log
+
+    async def delete_access(self, access_id: int) -> bool:
+        access_record = await self.get_access_record_by_id(access_id)
+        if not access_record:
+            return False
+        await self.db_session.delete(access_record)
+        await self.db_session.commit()
+        return True

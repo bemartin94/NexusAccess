@@ -1,19 +1,16 @@
-# app/visitors/endpoints.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from core.database import get_db # Asegúrate que esto apunta a tu AsyncSessionLocal
+from core.database import get_db 
 
-# Importa los modelos actualizados de core.models
-from core.models import Visitor, IdCardType # Solo los modelos que este DAL necesita directamente
+from core.models import Visitor, IdCardType
 
 # Importa los esquemas de visitantes
 from app.visitors.schemas import VisitorCreate, VisitorUpdate, VisitorResponse
 from app.visitors.dal import VisitorDAL
 from app.id_card_types.dal import IdCardTypeDAL
 
-# NO hay dependencias de rol aquí. Este es un router "base".
 router = APIRouter(tags=["Visitors (Base CRUD)"])
 
 # --- Endpoints CRUD para la entidad Visitor ---

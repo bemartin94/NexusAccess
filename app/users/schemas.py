@@ -1,4 +1,3 @@
-# app/users/schemas.py
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 
@@ -7,7 +6,7 @@ class UserBase(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=50)
     email: EmailStr
     phone: Optional[str] = Field(None, max_length=20)
-    is_active: bool = True # Añadido
+    is_active: bool = True 
     
     class Config:
         from_attributes = True

@@ -8,19 +8,14 @@ class IdCardTypeBase(BaseModel):
     name: str = Field(..., example="DNI", description="Nombre del tipo de tarjeta de identificación (ej. DNI, Pasaporte)")
 
 # Esquema para la creación de un nuevo tipo de tarjeta de identificación
-# Hereda de IdCardTypeBase y no añade campos adicionales aquí,
-# ya que el DAL solo usa 'name' para la creación.
 class IdCardTypeCreate(IdCardTypeBase):
     pass
 
 # Esquema para la actualización de un tipo de tarjeta de identificación existente
-# Hereda de IdCardTypeBase, pero hace que los campos sean opcionales
-# para permitir actualizaciones parciales.
 class IdCardTypeUpdate(IdCardTypeBase):
     name: Optional[str] = Field(None, example="Cédula", description="Nuevo nombre del tipo de tarjeta de identificación (opcional)")
 
 # Esquema para la lectura/respuesta de un tipo de tarjeta de identificación
-# Incluye el 'id' que se genera en la base de datos.
 class IdCardType(IdCardTypeBase):
     id: int = Field(..., example=1, description="ID único del tipo de tarjeta de identificación")
 
@@ -28,9 +23,4 @@ class IdCardTypeResponse(IdCardTypeBase): # Renombrado de IdCardType a IdCardTyp
     id: int = Field(..., example=1, description="ID único del tipo de tarjeta de identificación")
 
     class Config:
-        # Esto permite que Pydantic maneje objetos ORM de SQLAlchemy.
-        # En Pydantic v2+, se usa `from_attributes = True`.
-        # En Pydantic v1, se usaba `orm_mode = True`.
         from_attributes = True
-        # Para compatibilidad con Pydantic v1 y v2:
-        # orm_mode = True

@@ -1,9 +1,8 @@
-# app/venues/schemas.py
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List
 
 class VenueBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100) # Nombre ahora obligatorio
+    name: str = Field(..., min_length=1, max_length=100) 
     address: Optional[str] = Field(None, max_length=200)
     city: Optional[str] = Field(None, max_length=50)
     state: Optional[str] = Field(None, max_length=50)

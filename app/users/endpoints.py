@@ -5,7 +5,7 @@ from core.database import AsyncSessionLocal
 from typing import Optional, List
 from core.models import User, Role, Venue
 from sqlalchemy.future import select
-from app.auth import security as auth_security # <--- ¡IMPORTA EL MÓDULO DE SEGURIDAD PARA HASHEAR!
+from app.auth import security as auth_security
 
 router = APIRouter(tags=["Users"])
 
@@ -17,7 +17,7 @@ async def get_db():
 async def create_user(
     user_in: schemas.UserCreate,
     db: AsyncSession = Depends(get_db),
-    # AÑADE ESTA LÍNEA: Requiere que el usuario actual sea un System Administrator
+    # Requiere que el usuario actual sea un System Administrator
     current_user: User = Depends(auth_security.has_role(auth_security.SYSTEM_ADMINISTRATOR))
 ):
     # Opcional: Verificar si ya existe un usuario con el mismo email antes de hashear
@@ -27,8 +27,8 @@ async def create_user(
             status_code=status.HTTP_409_CONFLICT,
             detail="A user with this email already exists."
         )
-
-    # *** PUNTO CLAVE: HASHEAR LA CONTRASEÑA AQUÍ ***
+    
+    # Hashear la contraseña antes de crear el usuario
     hashed_password = auth_security.get_password_hash(user_in.password)
     
     # Crear una nueva instancia de UserCreate con la contraseña hasheada
@@ -59,7 +59,7 @@ async def update_user(
     user_update: schemas.UserUpdate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Si 'password' es un campo que se puede actualizar, también deberías hashearlo aquí
+    
     if user_update.password: # Solo hashear si se provee una nueva contraseña
         user_update.password = auth_security.get_password_hash(user_update.password)
 

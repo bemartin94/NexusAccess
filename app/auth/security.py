@@ -1,12 +1,13 @@
 # app/auth/security.py
+
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel # Necesario para Settings
-from core.models import User, Role # Importar Role para has_role
+from pydantic import BaseModel 
+from core.models import User, Role 
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -14,7 +15,7 @@ from core.database import get_db
 
 # --- Settings ---
 class Settings(BaseModel):
-    SECRET_KEY: str = "your_super_secret_key" # ¡Cambia esto en producción!
+    SECRET_KEY: str = "efccbf380499240ee40eea5e7cb4d687" # ¡Cambia esto en producción!
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
@@ -33,7 +34,6 @@ def get_password_hash(password):
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/app/v1/auth/token")
 
 def create_access_token(user: User, expires_delta: Optional[timedelta] = None):
-    # La información del usuario que se codificará en el token
     to_encode = {
         "sub": str(user.id),
         "email": user.email,
@@ -48,7 +48,7 @@ def create_access_token(user: User, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-async def get_current_user_from_token(token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user_from_token(token: str = Depends(oauth2_scheme)) -> dict:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -59,9 +59,7 @@ async def get_current_user_from_token(token: str = Depends(oauth2_scheme)) -> Us
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-        # No necesitas el `user_role` ni `user_venue_id` para *obtener* el usuario,
-        # pero los necesitas para las dependencias de rol y venue.
-        # Puedes pasarlos directamente si el payload tiene esos datos
+
         token_data = {
             "user_id": int(user_id),
             "user_role_name": payload.get("role"),
@@ -87,28 +85,41 @@ async def get_current_active_user(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    # Asegúrate de que el objeto User retornado tiene la información de rol y venue cargada
-    # y que los datos del token coinciden si es necesario para depuración.
-    # user.role_name = user.role.name if user.role else None # Esto no es necesario en el modelo directamente
     return user
 
 # --- Dependencia para verificar roles ---
 def has_role(required_roles: List[str]):
     async def role_checker(current_user: User = Depends(get_current_active_user)):
+        # Si el usuario es un System Administrator, tiene acceso a todo,
+        # sin importar los 'required_roles' específicos.
+        if current_user.role and current_user.role.name == SYSTEM_ADMINISTRATOR[0]: # <--- ¡CLAVE: Usa el primer elemento de la lista!
+            return current_user 
+
+        # Si no es administrador o si el endpoint requiere roles específicos
         if not required_roles:
-            return current_user # No hay roles específicos requeridos
-            
+            # Si no se requieren roles específicos para este endpoint, y no es admin,
+            # aún así se requiere que tenga un rol para ser válido.
+            # Este caso es para endpoints que son 'públicos' pero requieren un usuario autenticado.
+            if current_user.role:
+                return current_user
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Se requiere autenticación y un rol válido."
+                )
+
+        # Si se requieren roles específicos, verificar si el rol del usuario está en esa lista.
         if current_user.role and current_user.role.name in required_roles:
             return current_user
         
+        # Si no cumple con ninguno de los anteriores, denegar acceso.
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Not enough permissions. Required roles: {', '.join(required_roles)}. Your role: {current_user.role.name if current_user.role else 'None'}"
         )
     return role_checker
 
-# Roles predefinidos (ASEGÚRATE DE QUE ESTOS NOMBRES COINCIDEN EXACTAMENTE CON TUS ROLES EN LA DB)
+# Las constantes de roles ahora son listas de un solo elemento, lo cual es correcto para 'in required_roles'.
 SYSTEM_ADMINISTRATOR = ["System Administrator"]
 VENUE_SUPERVISOR = ["Venue Supervisor"]
 RECEPTIONIST = ["Receptionist"]
-# ELIMINAR O COMENTAR: GUEST_USER = ["Guest User"]

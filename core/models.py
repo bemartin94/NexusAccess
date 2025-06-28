@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func # Para valores por defecto de tiempo
-from .database import Base # Asegúrate de que .database es correcto para tu proyecto
+from .database import Base 
 from typing import Optional, List
 
 # --- Modelos del Sistema ---
@@ -19,7 +19,7 @@ class IdCardType(Base):
     name = Column(String, nullable=False, unique=True)  
 
     visitors = relationship("Visitor", back_populates="id_card_type") # Relación para visitantes
-    accesses = relationship("Access", back_populates="id_card_type_at_access") # Relación para Access (si se mantiene el FK)
+    accesses = relationship("Access", back_populates="id_card_type_at_access") # Relación para Access 
 
 class Venue(Base):
     __tablename__ = "venues"
@@ -55,7 +55,7 @@ class User(Base):
     role_id = Column(Integer, ForeignKey("roles.id"), nullable=False) # Rol del usuario, debe ser obligatorio
     
     role = relationship("Role", back_populates="users")
-    venue = relationship("Venue", back_populates="users", foreign_keys="[User.venue_id]") # Asegúrate de la foreign key si hay múltiples
+    venue = relationship("Venue", back_populates="users", foreign_keys="[User.venue_id]") 
     
     venues_supervised = relationship("Venue", back_populates="main_supervisor_user", foreign_keys="[Venue.main_supervisor_user_id]")
     
@@ -96,7 +96,6 @@ class Access(Base):
     venue_id = Column(Integer, ForeignKey("venues.id"), nullable=False)
     visitor_id = Column(Integer, ForeignKey("visitors.id"), nullable=False) # No debería ser nulo si cada acceso es de un visitante
     
-    # RE-AGREGADO: id_card_type_id y id_card_number_at_access para la "instantánea" del evento
     id_card_type_id = Column(Integer, ForeignKey("id_card_types.id"), nullable=False) # El tipo de documento usado en ESTE acceso
     id_card_number_at_access = Column(String, nullable=False) # El número de documento usado en ESTE acceso
     
@@ -110,7 +109,6 @@ class Access(Base):
     is_recurrent = Column(Boolean, default=False) # Si es un visitante recurrente (ej. contratista diario)
     status = Column(String, nullable=False) # Ej. "Activo", "Cerrado", "Denegado"
 
-    # Relaciones ACTUALIZADAS
     venue = relationship("Venue", back_populates="access_logs")
     visitor = relationship("Visitor", back_populates="access_logs")
     logged_by_user = relationship("User", back_populates="access_logs_logged") # El usuario interno que hizo el registro

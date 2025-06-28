@@ -4,17 +4,14 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel, Field, EmailStr # Asegúrate de que EmailStr está aquí
+from pydantic import BaseModel, Field, EmailStr 
 
-# Importaciones desde tu proyecto
 from core.database import get_db
 from app.users.dal import UserDAL
 from app.auth.security import verify_password, create_access_token, settings, get_current_active_user, get_password_hash
 from app.users.schemas import UserResponse # Para el response_model de /me
 from core.models import User # Para el tipo de 'current_user' en las dependencias
 
-# --- Esquemas específicos para autenticación (Si los tienes en auth/schemas.py, impórtalos) ---
-# Si estas clases ya están en app/auth/schemas.py, elimínalas de aquí y usa 'from app.auth.schemas import Token, UserUpdatePassword'
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -26,8 +23,8 @@ class Token(BaseModel):
 class UserUpdatePassword(BaseModel):
     new_password: str = Field(..., min_length=8)
 
-# --- Definición del Router (¡Sin prefijo aquí!) ---
-router = APIRouter(tags=["Auth"]) # <--- CAMBIO: Eliminado prefix="/auth"
+# --- Definición del Router ---
+router = APIRouter(tags=["Auth"]) 
 
 # --- Endpoint de Login ---
 @router.post("/token", response_model=Token)

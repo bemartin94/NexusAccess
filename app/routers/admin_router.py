@@ -1,10 +1,9 @@
-# app/routers/admin_router.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from core.database import get_db
-from app.auth.security import has_role, SYSTEM_ADMINISTRATOR, VENUE_SUPERVISOR # Importa has_role y las constantes
+from app.auth.security import has_role, SYSTEM_ADMINISTRATOR, VENUE_SUPERVISOR 
 from app.users.dal import UserDAL
 from app.roles.dal import RoleDAL
 from app.venues.dal import VenueDAL
@@ -14,7 +13,7 @@ from app.users.schemas import UserCreate, UserUpdate, UserResponse
 from app.roles.schemas import RoleCreate, RoleResponse
 from app.venues.schemas import VenueCreate, VenueUpdate, VenueResponse
 from app.id_card_types.schemas import IdCardTypeCreate, IdCardTypeUpdate
-from core.models import User # Para el tipo de current_user (aunque has_role ya lo asegura)
+from core.models import User 
 
 # Ahora el router depende directamente de has_role con los roles requeridos
 router = APIRouter(prefix="/admin", tags=["Admin"], dependencies=[Depends(has_role(SYSTEM_ADMINISTRATOR))])
