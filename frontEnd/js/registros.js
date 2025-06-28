@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const records = await response.json();
+            console.log("Registros recibidos del backend:", records); // <--- AÑADIDA ESTA LÍNEA CLAVE PARA DEPURAR
             displayAccessRecords(records);
 
         } catch (error) {
@@ -104,20 +105,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         records.forEach(record => {
             const row = recordsTableBody.insertRow();
             
-            const entryDateOnly = formatDate(record.entry_date); 
-            const entryTimeOnly = formatTime(record.entry_date); 
-            const exitTimeOnly = formatTime(record.exit_date);
+            const entryDateOnly = formatDate(record.entry_time); 
+            const entryTimeOnly = formatTime(record.entry_time); 
+            const exitTimeOnly = formatTime(record.exit_time);
             
             row.insertCell(0).textContent = entryDateOnly;
-            row.insertCell(1).textContent = record.visitor_name || 'N/A';
-            row.insertCell(2).textContent = record.id_card_type_name || 'N/A';
-            row.insertCell(3).textContent = record.visitor_id_card || 'N/A';
+            row.insertCell(1).textContent = record.visitor_full_name || 'N/A';
+            row.insertCell(2).textContent = record.id_card_type_name_at_access || 'N/A';
+            row.insertCell(3).textContent = record.id_card_number_at_access || 'N/A';
             row.insertCell(4).textContent = record.venue_name || 'N/A';
-            row.insertCell(5).textContent = record.supervisor_name || 'N/A';
+            row.insertCell(5).textContent = record.logged_by_user_email || 'N/A';
             row.insertCell(6).textContent = entryTimeOnly;
             
             const exitCell = row.insertCell(7);
-            if (record.exit_date === null) {
+            if (record.exit_time === null) {
                 exitCell.innerHTML = '<span class="pending">PENDIENTE</span>';
             } else {
                 exitCell.textContent = exitTimeOnly;
@@ -125,12 +126,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             row.insertCell(8).textContent = record.access_reason || 'N/A';
 
-            // Columna de Acciones
             const actionsCell = row.insertCell(9);
             actionsCell.classList.add('action-buttons'); 
 
-            // Botón "Marcar Salida" (solo si exit_date es null)
-            if (record.exit_date === null) {
+            if (record.exit_time === null) {
                 const markExitBtn = document.createElement('button');
                 markExitBtn.textContent = 'Marcar Salida';
                 markExitBtn.classList.add('btn', 'btn-salida');
@@ -138,33 +137,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 actionsCell.appendChild(markExitBtn);
             }
 
-            // Botón "Ver" con Google Material Icon
             const viewBtn = document.createElement('button');
-            viewBtn.innerHTML = '<i class="material-icons">visibility</i>'; // Nombre de icono de Google
-            viewBtn.classList.add('btn', 'btn-icon', 'btn-ver'); // Clases para el estilo
+            viewBtn.innerHTML = '<i class="material-icons">visibility</i>'; 
+            viewBtn.classList.add('btn', 'btn-icon', 'btn-ver'); 
             viewBtn.title = 'Ver Detalles';
             viewBtn.addEventListener('click', () => viewRecord(record.id));
             actionsCell.appendChild(viewBtn);
 
-            // Botón "Editar" con Google Material Icon
             const editBtn = document.createElement('button');
-            editBtn.innerHTML = '<i class="material-icons">edit</i>'; // Nombre de icono de Google
+            editBtn.innerHTML = '<i class="material-icons">edit</i>'; 
             editBtn.classList.add('btn', 'btn-icon', 'btn-editar');
             editBtn.title = 'Editar Registro';
             editBtn.addEventListener('click', () => editRecord(record.id));
             actionsCell.appendChild(editBtn);
 
-            // Botón "Eliminar" con Google Material Icon
             const deleteBtn = document.createElement('button');
-            deleteBtn.innerHTML = '<i class="material-icons">delete</i>'; // Nombre de icono de Google
+            deleteBtn.innerHTML = '<i class="material-icons">delete</i>'; 
             deleteBtn.classList.add('btn', 'btn-icon', 'btn-eliminar');
             deleteBtn.title = 'Eliminar Registro';
             deleteBtn.addEventListener('click', () => confirmDeleteRecord(record.id));
             actionsCell.appendChild(deleteBtn);
 
-            // Botón "Actualizar" (refresh) con Google Material Icon
             const refreshBtn = document.createElement('button');
-            refreshBtn.innerHTML = '<i class="material-icons">refresh</i>'; // Nombre de icono de Google
+            refreshBtn.innerHTML = '<i class="material-icons">refresh</i>'; 
             refreshBtn.classList.add('btn', 'btn-icon', 'btn-refresh');
             refreshBtn.title = 'Actualizar Registro';
             refreshBtn.addEventListener('click', () => loadAccessRecords(fechaFilterInput.value, documentoFilterInput.value));
@@ -175,13 +170,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function markExit(accessId) {
         showStatusMessage('Marcando salida...', 'info');
         try {
-            const response = await fetch(`${API_BASE_URL}/access/${accessId}`, {
+            const response = await fetch(`${API_BASE_URL}/access/${accessId}/exit`, { 
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
                 },
-                body: JSON.stringify({ exit_date: new Date().toISOString() })
             });
 
             if (!response.ok) {
@@ -200,14 +194,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function viewRecord(accessId) {
         showStatusMessage(`Ver registro ${accessId}`, 'info');
+        console.log(`Función Ver Registro para ID: ${accessId}`);
     }
 
     async function editRecord(accessId) {
         showStatusMessage(`Editar registro ${accessId}`, 'info');
+        console.log(`Función Editar Registro para ID: ${accessId}`);
     }
 
     async function confirmDeleteRecord(accessId) {
-        if (window.confirm(`¿Estás seguro de eliminar el registro ${accessId}?`)) {
+        if (window.confirm(`¿Estás seguro de eliminar el registro ${accessId}? Esta acción es irreversible.`)) {
             await deleteRecord(accessId);
         }
     }
