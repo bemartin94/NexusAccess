@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func # Para valores por defecto de tiempo
-from .database import Base 
+from core.database import Base 
 from typing import Optional, List
 
 # --- Modelos del Sistema ---
@@ -55,6 +55,7 @@ class User(Base):
     role_id = Column(Integer, ForeignKey("roles.id"), nullable=False) # Rol del usuario, debe ser obligatorio
     
     role = relationship("Role", back_populates="users")
+
     venue = relationship("Venue", back_populates="users", foreign_keys="[User.venue_id]") 
     
     venues_supervised = relationship("Venue", back_populates="main_supervisor_user", foreign_keys="[Venue.main_supervisor_user_id]")
